@@ -1,0 +1,17 @@
+{
+  "name": "Calculadora SOH — Baterías",
+  "short_name": "SOH Calc",
+  "description": "Calculadora del Estado de Salud de baterías de vehículos",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f4f7f5",
+  "theme_color": "#0F6E56",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "https://raw.githubusercontent.com/google/material-design-icons/master/png/action/battery_charging_full/materialicons/48dp/2x/baseline_battery_charging_full_black_48dp.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    }
+  ]
+}
