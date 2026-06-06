@@ -1024,40 +1024,87 @@ function acResaltarItem(campo, items) {
 // ─────────────────────────────────────────────────────────────
 //  API URL — reemplaza con tu URL de Apps Script
 // ─────────────────────────────────────────────────────────────
-var GAS_API_URL = 'https://script.google.com/a/macros/mop.gob.sv/s/AKfycbwHukMG_gd-QLxWaBCYDhXyRyWnSQ0VxdQJLV6rVNde5df0UH2RdXVDiJsTs5lOgyXp/exec';
+var GAS_API_URL = 'https://script.googleusercontent.com/a/macros/mop.gob.sv/echo?user_content_key=AUkAhnQfG1cFU7T2doMdX3o_-Ww_nFl5n0NjxNmRvvwb9rrsKaRvEuX_DpEFKERBeOqLGgg-1ZG8-AUzimkxkZyY0MbM44os5wX5kR2MKZEzh8uNiU674S0LmtRFxwAYJFhK9RssCJg65ZCht6KQKGRH9km88VYimYDMloPGtUmsCU8QOrX5OX1EOk8NkXYKZrIoWZrsPf1VuWDZAQEJQXyb7V_Jak7iIeV0wzTfSJHx0bDace9_z1ttGBV7MTfJpYb7dY_v8wRouUP2eyLOylUp99szhXrAVGBCipKQzOjR&lib=MAnsMFrThDhckCzxV-l7wPcDedCegkdek';
 
+// ── JSONP engine ──────────────────────────────────────────────
+// Apps Script bloquea fetch() desde dominios externos (CORS).
+// JSONP inyecta un <script> con ?callback=fn que GAS sí permite.
+var _cbIdx = 0;
+
+function jsonp(url, callback, onError) {
+  var cbName  = '_cb' + (++_cbIdx);
+  var timerId = setTimeout(function() {
+    cleanup();
+    if (onError) onError('timeout');
+  }, 20000);
+
+  function cleanup() {
+    delete window[cbName];
+    var el = document.getElementById(cbName);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    clearTimeout(timerId);
+  }
+
+  window[cbName] = function(data) {
+    cleanup();
+    callback(data);
+  };
+
+  var sep    = url.indexOf('?') >= 0 ? '&' : '?';
+  var script = document.createElement('script');
+  script.id  = cbName;
+  script.src = url + sep + 'callback=' + cbName + '&t=' + Date.now();
+  script.onerror = function() {
+    cleanup();
+    if (onError) onError('script-error');
+  };
+  document.head.appendChild(script);
+}
+
+// GET → JSONP directo
 function apiGet(action, callback, onError) {
-  fetch(GAS_API_URL + '?action=' + action)
-    .then(function(r) { return r.json(); })
-    .then(callback)
-    .catch(onError || function() { mostrarToast('Error de conexión', true); });
+  jsonp(GAS_API_URL + '?action=' + action, callback, onError);
 }
 
+// POST → se envía como GET con el body en base64 (GAS lo decodifica)
 function apiPost(body, callback, onError) {
-  fetch(GAS_API_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'text/plain' },
-    body: JSON.stringify(body)
-  })
-    .then(function(r) { return r.json(); })
-    .then(callback)
-    .catch(onError || function() { mostrarToast('Error de conexión', true); });
+  try {
+    var json    = JSON.stringify(body);
+    // Encode UTF-8 → base64
+    var b64     = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
+                  function(m, p1) { return String.fromCharCode('0x' + p1); }));
+    var url     = GAS_API_URL + '?action=post&data=' + encodeURIComponent(b64);
+    jsonp(url, callback, onError);
+  } catch(e) {
+    if (onError) onError(e);
+  }
 }
 
+// ── Carga inicial ─────────────────────────────────────────────
 window.onload = function() {
-  apiGet('load', function(result) {
+  if (!GAS_API_URL || GAS_API_URL.indexOf('PEGA_AQUI') >= 0) {
     var el = document.getElementById('loading-msg');
-    if (result && result.success) {
-      records = result.records || [];
-      renderTabla();
-      acActualizarDesdeRegistros();
-    } else {
-      if (el) el.textContent = 'Sin registros guardados aún.';
+    if (el) el.textContent = '⚠ Configura la URL de la API en index.html';
+    return;
+  }
+
+  apiGet('load',
+    function(result) {
+      var el = document.getElementById('loading-msg');
+      if (result && result.success) {
+        records = result.records || [];
+        renderTabla();
+        acActualizarDesdeRegistros();
+      } else {
+        if (el) el.textContent = 'Sin registros guardados aún.';
+      }
+    },
+    function(err) {
+      var el = document.getElementById('loading-msg');
+      if (el) el.textContent = '⚠ No se pudo conectar. Revisa la URL de la API.';
+      console.error('API load error:', err);
     }
-  }, function() {
-    var el = document.getElementById('loading-msg');
-    if (el) el.textContent = '⚠ No se pudo conectar. Verifica la URL de la API.';
-  });
+  );
 };
 
 // ─────────────────────────────────────────────────────────────
