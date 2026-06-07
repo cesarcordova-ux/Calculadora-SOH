@@ -14,11 +14,13 @@
 
   html { overflow-x: hidden; }
   body {
+    overflow-x: hidden;
+  }
+  body {
     font-family: Arial, sans-serif;
     background: #f4f7f5;
     color: #222;
     padding: 1.5rem 1rem;
-    overflow-x: hidden;
   }
   .container {
     width: 100%;
@@ -30,7 +32,7 @@
   .page-header p  { font-size: 0.82rem; opacity: 0.85; }
   .card { background: #fff; border: 0.5px solid #d0d5d3; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
   .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #0F6E56; margin-bottom: 0.85rem; }
-  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 14px; }
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
   .form-group { display: flex; flex-direction: column; gap: 5px; }
   .form-group label { font-size: 0.72rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
   .form-group input, .form-group select { border: 1px solid #c8d4d0; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; background: #fff; color: #222; outline: none; transition: border-color 0.15s; }
@@ -111,31 +113,29 @@
   .toast.error { background: #A32D2D; }
   /* ── Responsive breakpoints ── */
 
-  /* Tablet (≤ 768px) */
+  /* Tablet ≤ 768px */
   @media screen and (max-width: 768px) {
     body { padding: 1rem 0.75rem; }
-    .form-grid { grid-template-columns: repeat(2, 1fr); }
     .page-header h1 { font-size: 1rem; }
     .soh-number { font-size: 2.2rem; }
-    table { font-size: 0.72rem; }
-    th, td { padding: 6px 7px; }
     .swipe-hint { display: block; }
   }
 
-  /* Mobile (≤ 600px) */
+  /* Mobile ≤ 600px */
   @media screen and (max-width: 600px) {
     body { padding: 0.6rem 0.5rem; }
     .page-header { padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
-    .page-header h1 { font-size: 0.95rem; }
+    .page-header h1 { font-size: 0.92rem; }
     .page-header p  { font-size: 0.72rem; }
-    .card { padding: 0.85rem 0.75rem; border-radius: 8px; margin-bottom: 1rem; }
-    .section-title { font-size: 0.7rem; margin-bottom: 0.65rem; }
-    .form-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .card { padding: 0.85rem 0.75rem; border-radius: 8px; margin-bottom: 0.85rem; }
+    .section-title { font-size: 0.7rem; margin-bottom: 0.6rem; }
+    /* Force single column on mobile */
+    .form-grid { grid-template-columns: 1fr !important; gap: 10px; }
     .computed-grid { grid-template-columns: 1fr; gap: 8px; }
     .computed-item .lbl { font-size: 0.62rem; }
     .computed-item .val { font-size: 0.95rem; }
     .soh-box { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
-    .soh-number { font-size: 2.4rem; min-width: unset; font-weight: 700; display: block; }
+    .soh-number { font-size: 2.4rem; min-width: unset; display: block; }
     .soh-right { width: 100%; }
     .soh-save-wrap button { font-size: 0.85rem; padding: 10px; }
     .btn-row { margin-bottom: 1rem; }
@@ -144,28 +144,25 @@
     .odo-unit-badge { min-width: 36px; font-size: 0.75rem; padding: 0 7px; }
     .ac-dropdown { font-size: 0.82rem; }
     .ac-item { padding: 9px 10px; }
-    /* Table: allow horizontal scroll with touch */
-    .table-wrap { border-radius: 6px; overflow-x: scroll; -webkit-overflow-scrolling: touch; }
+    .table-wrap { overflow-x: scroll; -webkit-overflow-scrolling: touch; }
     table { min-width: 0; width: max-content; font-size: 0.7rem; }
     th, td { padding: 6px 8px; white-space: nowrap; }
-    .toast { bottom: 0.75rem; right: 0.5rem; left: 0.5rem; text-align: center; font-size: 0.8rem; border-radius: 6px; }
+    .toast { bottom: 0.75rem; right: 0.5rem; left: 0.5rem; text-align: center; font-size: 0.8rem; }
     .legend { font-size: 0.68rem; line-height: 1.8; }
     .table-hdr { flex-direction: column; align-items: flex-start; gap: 6px; }
     .btn-export { width: 100%; text-align: center; }
   }
 
-  /* Small mobile (≤ 400px) */
+  /* Small mobile ≤ 400px */
   @media screen and (max-width: 400px) {
     body { padding: 0.5rem; }
-    .page-header h1 { font-size: 0.88rem; }
-    .form-grid { grid-template-columns: 1fr; gap: 8px; }
-    .section-title { font-size: 0.67rem; }
-    .form-group label { font-size: 0.64rem; }
+    .page-header h1 { font-size: 0.85rem; }
+    .section-title { font-size: 0.66rem; }
+    .form-group label { font-size: 0.63rem; }
     .form-group input, .form-group select { font-size: 0.82rem; padding: 7px 8px; }
     .soh-number { font-size: 2rem; }
-    .card { padding: 0.75rem 0.65rem; }
-  }
-</style>
+    .card { padding: 0.7rem 0.6rem; }
+  }</style>
 </head>
 <body>
 
@@ -501,8 +498,17 @@ function acResaltarItem(campo, items) {
 // ─────────────────────────────────────────────────────────────
 //  CARGA INICIAL
 // ─────────────────────────────────────────────────────────────
-// ── GAS iframe auto-height ───────────────────────────────────
 
+
+window.onload = function() {
+  patchRenderTabla();
+  setTimeout(gasAutoHeight, 200);
+
+  
+      if (el) el.textContent = 'No se pudieron cargar los registros.';
+    })
+    .loadRecords();
+};
 
 // ─────────────────────────────────────────────────────────────
 //  CÁLCULOS
@@ -721,24 +727,9 @@ function guardarRegistro() {
   btn.disabled    = true;
   btn.textContent = '\u23f3 Guardando...';
 
-  apiPost({ action: 'save', record: record }, function(result) {
-    btn.disabled    = false;
-    btn.textContent = '\ud83d\udcbe Guardar en la tabla';
-    if (result && result.success) {
-      record.id = result.id;
-      records.push(record);
-      renderTabla();
-      acActualizarDesdeRegistros();
-      limpiarFormulario();
-      mostrarToast('\u2714 Guardado en Google Sheets');
-    } else {
-      mostrarToast('\u2716 Error: ' + (result ? result.error : 'desconocido'), true);
-    }
-  }, function() {
-    btn.disabled    = false;
-    btn.textContent = '\ud83d\udcbe Guardar en la tabla';
-    mostrarToast('\u2716 Error de conexi\u00f3n con Google Sheets', true);
-  });
+  
+    })
+    .saveRecord(record);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -788,15 +779,9 @@ function renderTabla() {
 // ─────────────────────────────────────────────────────────────
 function eliminarRegistro(idx) {
   if (!confirm('¿Eliminar este registro? También se borrará de Google Sheets.')) return;
-  apiPost({ action: 'delete', index: idx }, function(result) {
-    if (result && result.success) {
-      records.splice(idx, 1);
-      renderTabla();
-      mostrarToast('Registro eliminado');
-    } else {
-      mostrarToast('Error al eliminar', true);
-    }
-  });
+  
+    })
+    .deleteRecord(idx);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -866,6 +851,78 @@ function mostrarToast(msg, isError) {
 </script>
 
 <script>
+// ─────────────────────────────────────────────────────────────
+//  CARGA INICIAL
+// ─────────────────────────────────────────────────────────────
+
+// ── Reemplaza con tu URL de Apps Script ──────────────────────
+var GAS_API_URL = 'https://script.google.com/macros/s/AKfycbzlNIU2wtHamo9iatyvDa3OCZcoyERwzZlouN8OaDMba9oeWqCQQXgcVNZi4TONdhhiug/exec';
+
+// ── JSONP engine (bypass CORS) ────────────────────────────────
+var _cbIdx = 0;
+
+function jsonp(url, callback, onError) {
+  var cbName  = '_cb' + (++_cbIdx);
+  var timerId = setTimeout(function() {
+    cleanup(); if (onError) onError('timeout');
+  }, 20000);
+
+  function cleanup() {
+    delete window[cbName];
+    var el = document.getElementById(cbName);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    clearTimeout(timerId);
+  }
+
+  window[cbName] = function(data) { cleanup(); callback(data); };
+
+  var sep    = url.indexOf('?') >= 0 ? '&' : '?';
+  var script = document.createElement('script');
+  script.id  = cbName;
+  script.src = url + sep + 'callback=' + cbName + '&t=' + Date.now();
+  script.onerror = function() { cleanup(); if (onError) onError('script-error'); };
+  document.head.appendChild(script);
+}
+
+function apiGet(action, callback, onError) {
+  jsonp(GAS_API_URL + '?action=' + action, callback, onError);
+}
+
+function apiPost(body, callback, onError) {
+  try {
+    var json = JSON.stringify(body);
+    var b64  = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
+               function(m, p1) { return String.fromCharCode('0x' + p1); }));
+    jsonp(GAS_API_URL + '?action=post&data=' + encodeURIComponent(b64), callback, onError);
+  } catch(e) { if (onError) onError(e); }
+}
+
+window.onload = function() {
+  if (!GAS_API_URL || GAS_API_URL.indexOf('PEGA_AQUI') >= 0) {
+    var el = document.getElementById('loading-msg');
+    if (el) el.textContent = '\u26a0 Configura la URL de la API en index.html';
+    return;
+  }
+  // loading-msg stays visible until we get a response
+  apiGet('load',
+    function(result) {
+      var el = document.getElementById('loading-msg');
+      if (result && result.success) {
+        records = result.records || [];
+        renderTabla();          // overwrites loading-msg row
+        acActualizarDesdeRegistros();
+      } else {
+        if (el) el.textContent = 'Sin registros guardados a\u00fan.';
+      }
+    },
+    function() {
+      // Only show error AFTER timeout (20s) — connection truly failed
+      var el = document.getElementById('loading-msg');
+      if (el) el.textContent = '\u26a0 No se pudo conectar. Revisa la URL de la API.';
+    }
+  );
+};
+
 
 // ─────────────────────────────────────────────────────────────
 //  PARÁMETROS (sin caracteres especiales en las keys para
@@ -1019,95 +1076,6 @@ function acResaltarItem(campo, items) {
 
 
 // ─────────────────────────────────────────────────────────────
-//  CARGA INICIAL
-// ─────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────
-//  API URL — reemplaza con tu URL de Apps Script
-// ─────────────────────────────────────────────────────────────
-var GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwJLAW4WfF2DYzlH9z8GqvcMLl6OfIeyFSuH9rCEotGYJ3IbfEBYeYzR8ODUmi0-KqxQg/exec';
-
-// ── JSONP engine ──────────────────────────────────────────────
-// Apps Script bloquea fetch() desde dominios externos (CORS).
-// JSONP inyecta un <script> con ?callback=fn que GAS sí permite.
-var _cbIdx = 0;
-
-function jsonp(url, callback, onError) {
-  var cbName  = '_cb' + (++_cbIdx);
-  var timerId = setTimeout(function() {
-    cleanup();
-    if (onError) onError('timeout');
-  }, 20000);
-
-  function cleanup() {
-    delete window[cbName];
-    var el = document.getElementById(cbName);
-    if (el && el.parentNode) el.parentNode.removeChild(el);
-    clearTimeout(timerId);
-  }
-
-  window[cbName] = function(data) {
-    cleanup();
-    callback(data);
-  };
-
-  var sep    = url.indexOf('?') >= 0 ? '&' : '?';
-  var script = document.createElement('script');
-  script.id  = cbName;
-  script.src = url + sep + 'callback=' + cbName + '&t=' + Date.now();
-  script.onerror = function() {
-    cleanup();
-    if (onError) onError('script-error');
-  };
-  document.head.appendChild(script);
-}
-
-// GET → JSONP directo
-function apiGet(action, callback, onError) {
-  jsonp(GAS_API_URL + '?action=' + action, callback, onError);
-}
-
-// POST → se envía como GET con el body en base64 (GAS lo decodifica)
-function apiPost(body, callback, onError) {
-  try {
-    var json    = JSON.stringify(body);
-    // Encode UTF-8 → base64
-    var b64     = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
-                  function(m, p1) { return String.fromCharCode('0x' + p1); }));
-    var url     = GAS_API_URL + '?action=post&data=' + encodeURIComponent(b64);
-    jsonp(url, callback, onError);
-  } catch(e) {
-    if (onError) onError(e);
-  }
-}
-
-// ── Carga inicial ─────────────────────────────────────────────
-window.onload = function() {
-  if (!GAS_API_URL || GAS_API_URL.indexOf('PEGA_AQUI') >= 0) {
-    var el = document.getElementById('loading-msg');
-    if (el) el.textContent = '⚠ Configura la URL de la API en index.html';
-    return;
-  }
-
-  apiGet('load',
-    function(result) {
-      var el = document.getElementById('loading-msg');
-      if (result && result.success) {
-        records = result.records || [];
-        renderTabla();
-        acActualizarDesdeRegistros();
-      } else {
-        if (el) el.textContent = 'Sin registros guardados aún.';
-      }
-    },
-    function(err) {
-      var el = document.getElementById('loading-msg');
-      if (el) el.textContent = '⚠ No se pudo conectar. Revisa la URL de la API.';
-      console.error('API load error:', err);
-    }
-  );
-};
-
-// ─────────────────────────────────────────────────────────────
 //  CÁLCULOS
 // ─────────────────────────────────────────────────────────────
 // Resuelve año abreviado a año completo:
@@ -1321,6 +1289,7 @@ function guardarRegistro() {
   };
 
   var btn = document.getElementById('save-btn');
+  if (btn.disabled) return;   // prevent double-submit
   btn.disabled    = true;
   btn.textContent = '\u23f3 Guardando...';
 
@@ -1395,10 +1364,12 @@ function eliminarRegistro(idx) {
     if (result && result.success) {
       records.splice(idx, 1);
       renderTabla();
-      mostrarToast('Registro eliminado');
+      mostrarToast('\ud83d\uddd1 Registro eliminado');
     } else {
       mostrarToast('Error al eliminar', true);
     }
+  }, function() {
+    mostrarToast('Error de conexi\u00f3n', true);
   });
 }
 
