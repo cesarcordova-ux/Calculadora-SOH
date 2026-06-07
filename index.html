@@ -10,6 +10,7 @@
 <link rel="manifest" href="manifest.json" />
 <title>Calculadora SOH</title>
 <style>
+
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   html { overflow-x: hidden; }
@@ -130,7 +131,7 @@
     .card { padding: 0.85rem 0.75rem; border-radius: 8px; margin-bottom: 0.85rem; }
     .section-title { font-size: 0.7rem; margin-bottom: 0.6rem; }
     /* Force single column on mobile */
-    .form-grid { grid-template-columns: 1fr !important; gap: 10px; }
+    .form-grid { grid-template-columns: 1fr; gap: 10px; }
     .computed-grid { grid-template-columns: 1fr; gap: 8px; }
     .computed-item .lbl { font-size: 0.62rem; }
     .computed-item .val { font-size: 0.95rem; }
@@ -162,7 +163,10 @@
     .form-group input, .form-group select { font-size: 0.82rem; padding: 7px 8px; }
     .soh-number { font-size: 2rem; }
     .card { padding: 0.7rem 0.6rem; }
-  }</style>
+  }
+</style>
+</head>
+<body>
 </head>
 <body>
 
@@ -342,521 +346,13 @@
 
 </div>
 <div class="toast" id="toast"></div>
-
-<script>
-// ─────────────────────────────────────────────────────────────
-//  PARÁMETROS (sin caracteres especiales en las keys para
-//  evitar problemas de encoding en GAS)
-// ─────────────────────────────────────────────────────────────
-var PARAMS = {
-  bateria: {
-    LFP:  { delta: 1.75, ea: 37300, k: 0.0145 },
-    NMC:  { delta: 0.85, ea: 52500, k: 0.0135 },
-    NCA:  { delta: 1.15, ea: 50000, k: 0.0105 },
-    NiMH: { delta: 0.50, ea: 42500, k: 0.0180 }
-  },
-  vehiculo: {
-    Electrico:        { factor: 1.00, garantia: 161000 },
-    Hibrido:          { factor: 0.40, garantia: 161000 },
-    'Hibrido Electrico': { factor: 0.68, garantia: 161000 },
-    PHEV:             { factor: 0.75, garantia: 128700 }
-  },
-  R: 8.314, T_alta: 305.15, T_ref: 293.15, MI_TO_KM: 1.60934
-};
-
-// Nombres para mostrar en la tabla
-var NOMBRES_VEH = {
-  Electrico: 'El\u00e9ctrico',
-  Hibrido: 'H\u00edbrido',
-  'Hibrido Electrico': 'H\u00edbrido El\u00e9ctrico',
-  PHEV: 'PHEV'
-};
-
-var MESES = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-
-var records = [];
-var currentResult = null; // resultado del ultimo calculo
-
-// ─────────────────────────────────────────────────────────────
-//  AUTOCOMPLETADO — MARCA Y MODELO
-// ─────────────────────────────────────────────────────────────
-var acData   = { marca: [], modelo: [] };  // listas únicas desde Sheets
-var acActive = { marca: -1, modelo: -1 }; // índice de item resaltado
-
-// Extrae únicos de los registros ya cargados
-function acActualizarDesdeRegistros() {
-  var marcas  = {};
-  var modelos = {};
-  for (var i = 0; i < records.length; i++) {
-    if (records[i].marca)  marcas[records[i].marca]   = true;
-    if (records[i].modelo) modelos[records[i].modelo] = true;
-  }
-  acData.marca  = Object.keys(marcas).sort();
-  acData.modelo = Object.keys(modelos).sort();
-}
-
-// Muestra el dropdown filtrando por lo escrito
-function acFiltrar(campo) {
-  var input    = document.getElementById(campo);
-  var dropdown = document.getElementById('ac-' + campo);
-  var query    = input.value.trim().toUpperCase();
-  var lista    = acData[campo];
-
-  acActive[campo] = -1;
-
-  // filtrar: primero starts-with, luego contains
-  var sw = [], ct = [];
-  for (var i = 0; i < lista.length; i++) {
-    var item = lista[i].toUpperCase();
-    if (item === query) continue; // ya está escrito exacto, no sugerir
-    if (query === '' || item.indexOf(query) === 0) {
-      sw.push(lista[i]);
-    } else if (query !== '' && item.indexOf(query) > 0) {
-      ct.push(lista[i]);
-    }
-  }
-  var filtrado = sw.concat(ct).slice(0, 8); // máx 8 sugerencias
-
-  if (filtrado.length === 0) {
-    dropdown.innerHTML = '';
-    dropdown.classList.remove('open');
-    return;
-  }
-
-  var html = '';
-  for (var j = 0; j < filtrado.length; j++) {
-    var texto = filtrado[j];
-    // resaltar coincidencia
-    if (query.length > 0) {
-      var idx = texto.toUpperCase().indexOf(query);
-      if (idx >= 0) {
-        texto = texto.substring(0, idx) +
-                '<mark>' + texto.substring(idx, idx + query.length) + '</mark>' +
-                texto.substring(idx + query.length);
-      }
-    }
-    html += '<div class="ac-item" data-val="' + filtrado[j] + '" ' +
-            'onmousedown="acSeleccionar(\'' + campo + '\',\'' + filtrado[j] + '\')">' +
-            texto + '</div>';
-  }
-  dropdown.innerHTML = html;
-  dropdown.classList.add('open');
-}
-
-// Selecciona un item del dropdown
-function acSeleccionar(campo, valor) {
-  document.getElementById(campo).value = valor;
-  acCerrarAhora(campo);
-}
-
-// Cierra con delay (para que onmousedown dispare antes que onblur)
-function acCerrar(campo, delay) {
-  setTimeout(function() { acCerrarAhora(campo); }, delay || 0);
-}
-
-function acCerrarAhora(campo) {
-  var dropdown = document.getElementById('ac-' + campo);
-  dropdown.classList.remove('open');
-  acActive[campo] = -1;
-}
-
-// Navegación con teclado: ↑ ↓ Enter Escape
-function acTecla(e, campo) {
-  var dropdown = document.getElementById('ac-' + campo);
-  var items    = dropdown.querySelectorAll('.ac-item');
-  if (!dropdown.classList.contains('open') || items.length === 0) return;
-
-  if (e.key === 'ArrowDown' || e.keyCode === 40) {
-    e.preventDefault();
-    acActive[campo] = Math.min(acActive[campo] + 1, items.length - 1);
-    acResaltarItem(campo, items);
-  } else if (e.key === 'ArrowUp' || e.keyCode === 38) {
-    e.preventDefault();
-    acActive[campo] = Math.max(acActive[campo] - 1, 0);
-    acResaltarItem(campo, items);
-  } else if (e.key === 'Enter' || e.keyCode === 13) {
-    if (acActive[campo] >= 0) {
-      e.preventDefault();
-      acSeleccionar(campo, items[acActive[campo]].getAttribute('data-val'));
-    }
-  } else if (e.key === 'Escape' || e.keyCode === 27) {
-    acCerrarAhora(campo);
-  }
-}
-
-function acResaltarItem(campo, items) {
-  for (var i = 0; i < items.length; i++) {
-    items[i].classList.toggle('active', i === acActive[campo]);
-  }
-  if (acActive[campo] >= 0) {
-    items[acActive[campo]].scrollIntoView({ block: 'nearest' });
-  }
-}
-
-
-
-// ─────────────────────────────────────────────────────────────
-//  CARGA INICIAL
-// ─────────────────────────────────────────────────────────────
-
-
-window.onload = function() {
-  patchRenderTabla();
-  setTimeout(gasAutoHeight, 200);
-
-  
-      if (el) el.textContent = 'No se pudieron cargar los registros.';
-    })
-    .loadRecords();
-};
-
-// ─────────────────────────────────────────────────────────────
-//  CÁLCULOS
-// ─────────────────────────────────────────────────────────────
-// Resuelve año abreviado a año completo:
-// 00-29  -> 2000-2029
-// 30-99  -> 1930-1999  (ej: 94 -> 1994)
-// >= 100 -> se usa tal cual si es razonable
-function resolverAnio(raw) {
-  if (!raw && raw !== 0) return null;
-  var n = parseInt(raw);
-  if (isNaN(n) || n < 0) return null;
-  if (n <= 99) {
-    return n <= 29 ? 2000 + n : 1900 + n;
-  }
-  // año completo ingresado (ej: 2023)
-  if (n >= 1900 && n <= 2099) return n;
-  return null;
-}
-
-function validarMes() {
-  var val = parseInt(document.getElementById('mes_fab').value) || 0;
-  var inp = document.getElementById('mes_fab');
-  var err = document.getElementById('mes-error');
-  if (document.getElementById('mes_fab').value === '') {
-    inp.classList.remove('input-error', 'input-ok');
-    err.style.display = 'none';
-    return;
-  }
-  if (val < 1 || val > 12) {
-    inp.classList.add('input-error');
-    inp.classList.remove('input-ok');
-    err.style.display = 'block';
-  } else {
-    inp.classList.remove('input-error');
-    inp.classList.add('input-ok');
-    err.style.display = 'none';
-  }
-}
-
-function interpretarAnio() {
-  var raw  = document.getElementById('anio_fab').value;
-  var inp  = document.getElementById('anio_fab');
-  var hint = document.getElementById('date-hint');
-
-  if (raw === '') {
-    inp.classList.remove('input-error', 'input-ok');
-    document.getElementById('anio_resuelto').value = '';
-    hint.textContent = 'Mes (1–12) y año abreviado (ej: 23 → 2023, 04 → 2004)';
-    return;
-  }
-
-  var resuelto = resolverAnio(raw);
-  if (resuelto) {
-    document.getElementById('anio_resuelto').value = resuelto;
-    inp.classList.remove('input-error');
-    inp.classList.add('input-ok');
-    hint.textContent = '→ Año interpretado como ' + resuelto;
-  } else {
-    document.getElementById('anio_resuelto').value = '';
-    inp.classList.add('input-error');
-    inp.classList.remove('input-ok');
-    hint.textContent = 'Año no válido';
-  }
-}
-
-function calcDias(mes, anio) {
-  if (!mes || !anio || mes < 1 || mes > 12 || anio < 1900 || anio > 2099) return null;
-  var fab = new Date(anio, mes - 1, 1);
-  var hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  var diff = Math.round((hoy.getTime() - fab.getTime()) / 86400000);
-  return diff >= 0 ? diff : 0;
-}
-
-function calcSOH(dias, odoKm, delta, ea, k, factor, garantia) {
-  var D_tiempo = k * Math.sqrt(dias) * Math.exp((-ea / PARAMS.R) * (1 / PARAMS.T_alta - 1 / PARAMS.T_ref));
-  var D_km     = ((odoKm / garantia) * 0.3 * factor) * 100;
-  var SOH      = (100 - (delta + D_tiempo + D_km)) / 100;
-  return { D_tiempo: D_tiempo, D_km: D_km, SOH: SOH };
-}
-
-function getOdoKm() {
-  var raw = parseFloat(document.getElementById('odometro').value);
-  if (isNaN(raw)) return NaN;
-  return document.getElementById('is_miles').checked ? raw * PARAMS.MI_TO_KM : raw;
-}
-
-// ─────────────────────────────────────────────────────────────
-//  ACTUALIZAR UI EN TIEMPO REAL
-// ─────────────────────────────────────────────────────────────
-function updateComputed() {
-  var mes  = parseInt(document.getElementById('mes_fab').value)  || 0;
-  var anio = parseInt(document.getElementById('anio_resuelto').value) || 0;
-  var dias = calcDias(mes, anio);
-
-  document.getElementById('dias_fab').value = (dias !== null) ? dias : '';
-
-  var bat = document.getElementById('tipo_bateria').value;
-  var veh = document.getElementById('tipo_vehiculo').value;
-  var bP  = bat ? PARAMS.bateria[bat]   : null;
-  var vP  = veh ? PARAMS.vehiculo[veh]  : null;
-
-  document.getElementById('delta_form').value = bP ? bP.delta    : '';
-  document.getElementById('ea').value          = bP ? bP.ea       : '';
-  document.getElementById('k_tiempo').value    = bP ? bP.k        : '';
-  document.getElementById('factor_uso').value  = vP ? vP.factor   : '';
-  document.getElementById('garantia').value    = vP ? vP.garantia : '';
-
-  // odómetro badge
-  var raw     = parseFloat(document.getElementById('odometro').value);
-  var isMiles = document.getElementById('is_miles').checked;
-  var badge   = document.getElementById('odo-unit-badge');
-  var hint    = document.getElementById('odo-converted');
-  badge.textContent = isMiles ? 'mi' : 'km';
-  badge.className   = 'odo-unit-badge' + (isMiles ? ' miles' : '');
-  hint.textContent  = (isMiles && !isNaN(raw))
-    ? '= ' + (raw * PARAMS.MI_TO_KM).toFixed(2) + ' km'
-    : '';
-
-  var odoKm = getOdoKm();
-  var ok    = bP && vP && dias !== null && dias > 0 && !isNaN(odoKm);
-
-  var sohEl  = document.getElementById('soh-pct');
-  var barEl  = document.getElementById('soh-bar');
-  var stEl   = document.getElementById('soh-status');
-  var saveWrap = document.getElementById('soh-save-wrap');
-
-  if (ok) {
-    var res = calcSOH(dias, odoKm, bP.delta, bP.ea, bP.k, vP.factor, vP.garantia);
-    currentResult = { dias: dias, odoKm: odoKm, bP: bP, vP: vP, res: res };
-
-    document.getElementById('d_tiempo_val').textContent = res.D_tiempo.toFixed(6);
-    document.getElementById('d_km_val').textContent     = res.D_km.toFixed(6);
-
-    var pct = Math.min(Math.max(res.SOH * 100, 0), 100);
-    sohEl.textContent  = (res.SOH * 100).toFixed(2) + '%';
-    barEl.style.width  = pct.toFixed(1) + '%';
-
-    if (res.SOH >= 0.8) {
-      barEl.style.background = '#0F6E56';
-      sohEl.className = 'soh-number';
-      stEl.textContent = 'Bater\u00eda en buen estado';
-    } else if (res.SOH >= 0.6) {
-      barEl.style.background = '#854F0B';
-      sohEl.className = 'soh-number amber';
-      stEl.textContent = 'Bater\u00eda con desgaste moderado';
-    } else {
-      barEl.style.background = '#A32D2D';
-      sohEl.className = 'soh-number red';
-      stEl.textContent = 'Bater\u00eda con desgaste severo';
-    }
-    saveWrap.style.display = 'block';
-  } else {
-    currentResult = null;
-    document.getElementById('d_tiempo_val').textContent = '\u2014';
-    document.getElementById('d_km_val').textContent     = '\u2014';
-    sohEl.textContent = '\u2014';
-    sohEl.className   = 'soh-number';
-    barEl.style.width = '0%';
-    stEl.textContent  = 'Completa los campos para calcular';
-    saveWrap.style.display = 'none';
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-//  GUARDAR REGISTRO
-// ─────────────────────────────────────────────────────────────
-function guardarRegistro() {
-  var marca   = document.getElementById('marca').value.trim();
-  var modelo  = document.getElementById('modelo').value.trim();
-  var mes     = parseInt(document.getElementById('mes_fab').value)    || 0;
-  var anio    = parseInt(document.getElementById('anio_resuelto').value) || 0;
-  var bat     = document.getElementById('tipo_bateria').value;
-  var veh     = document.getElementById('tipo_vehiculo').value;
-  var rawOdo  = parseFloat(document.getElementById('odometro').value);
-  var isMiles = document.getElementById('is_miles').checked;
-
-  if (!marca || !modelo || !mes || !anio || !bat || !veh || isNaN(rawOdo)) {
-    mostrarToast('Por favor completa todos los campos.', true);
-    return;
-  }
-  if (!currentResult) {
-    mostrarToast('No hay resultado calculado.', true);
-    return;
-  }
-
-  var odoKm = isMiles ? rawOdo * PARAMS.MI_TO_KM : rawOdo;
-  var dias  = calcDias(mes, anio);
-  var bP    = PARAMS.bateria[bat];
-  var vP    = PARAMS.vehiculo[veh];
-  var res   = currentResult.res;
-
-  var record = {
-    marca:    marca,
-    modelo:   modelo,
-    mes:      mes,
-    anio:     anio,
-    dias:     dias,
-    tipo_veh: veh,
-    tipo_bat: bat,
-    odo_raw:  rawOdo,
-    odo_unit: isMiles ? 'mi' : 'km',
-    odo_km:   odoKm,
-    delta:    bP.delta,
-    ea:       bP.ea,
-    k:        bP.k,
-    factor:   vP.factor,
-    garantia: vP.garantia,
-    d_tiempo: res.D_tiempo,
-    d_km:     res.D_km,
-    soh:      res.SOH
-  };
-
-  var btn = document.getElementById('save-btn');
-  btn.disabled    = true;
-  btn.textContent = '\u23f3 Guardando...';
-
-  
-    })
-    .saveRecord(record);
-}
-
-// ─────────────────────────────────────────────────────────────
-//  RENDERIZAR TABLA
-// ─────────────────────────────────────────────────────────────
-function renderTabla() {
-  var tbody = document.getElementById('records-body');
-  if (!records || records.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="18" class="empty-msg">Sin registros guardados a\u00fan.</td></tr>';
-    return;
-  }
-  var html = '';
-  for (var i = 0; i < records.length; i++) {
-    var r   = records[i];
-    var pct = (r.soh * 100).toFixed(2);
-    var cls = r.soh >= 0.8 ? 'badge-green' : r.soh >= 0.6 ? 'badge-amber' : 'badge-red';
-    var odoDisp = (r.odo_unit === 'mi')
-      ? r.odo_raw + ' mi (' + parseFloat(r.odo_km).toFixed(0) + ' km)'
-      : parseFloat(r.odo_km).toFixed(1) + ' km';
-    var nomVeh = NOMBRES_VEH[r.tipo_veh] || r.tipo_veh;
-    html += '<tr>' +
-      '<td>' + (i + 1) + '</td>' +
-      '<td>' + r.marca + '</td>' +
-      '<td>' + r.modelo + '</td>' +
-      '<td>' + (MESES[r.mes] || r.mes) + '</td>' +
-      '<td>' + r.anio + '</td>' +
-      '<td>' + r.dias + '</td>' +
-      '<td>' + nomVeh + '</td>' +
-      '<td>' + r.tipo_bat + '</td>' +
-      '<td>' + odoDisp + '</td>' +
-      '<td>' + r.delta + '</td>' +
-      '<td>' + r.ea + '</td>' +
-      '<td>' + r.k + '</td>' +
-      '<td>' + r.factor + '</td>' +
-      '<td>' + r.garantia + '</td>' +
-      '<td>' + parseFloat(r.d_tiempo).toFixed(6) + '</td>' +
-      '<td>' + parseFloat(r.d_km).toFixed(6) + '</td>' +
-      '<td><span class="badge ' + cls + '">' + pct + '%</span></td>' +
-      '<td><button class="del-btn" onclick="eliminarRegistro(' + i + ')" title="Eliminar">\ud83d\uddd1</button></td>' +
-      '</tr>';
-  }
-  tbody.innerHTML = html;
-}
-
-// ─────────────────────────────────────────────────────────────
-//  ELIMINAR REGISTRO
-// ─────────────────────────────────────────────────────────────
-function eliminarRegistro(idx) {
-  if (!confirm('¿Eliminar este registro? También se borrará de Google Sheets.')) return;
-  
-    })
-    .deleteRecord(idx);
-}
-
-// ─────────────────────────────────────────────────────────────
-//  LIMPIAR FORMULARIO
-// ─────────────────────────────────────────────────────────────
-function limpiarFormulario() {
-  var campos = ['marca','modelo','mes_fab','anio_fab','anio_resuelto','odometro'];
-  for (var i = 0; i < campos.length; i++) {
-    document.getElementById(campos[i]).value = '';
-  }
-  document.getElementById('tipo_vehiculo').value = '';
-  document.getElementById('tipo_bateria').value  = '';
-  document.getElementById('is_miles').checked    = false;
-  acCerrarAhora('marca');
-  acCerrarAhora('modelo');
-  currentResult = null;
-  setTimeout(gasAutoHeight, 80);
-  // reset date field styles and hint
-  document.getElementById('mes_fab').classList.remove('input-error','input-ok');
-  document.getElementById('anio_fab').classList.remove('input-error','input-ok');
-  document.getElementById('mes-error').style.display = 'none';
-  document.getElementById('date-hint').textContent = 'Mes (1–12) y año abreviado (ej: 23 → 2023, 04 → 2004)';
-  updateComputed();
-}
-
-// ─────────────────────────────────────────────────────────────
-//  EXPORTAR CSV
-// ─────────────────────────────────────────────────────────────
-function exportarCSV() {
-  if (!records || records.length === 0) {
-    mostrarToast('No hay registros para exportar.', true);
-    return;
-  }
-  var cols = ['#','Marca','Modelo','Mes','Anio','Dias','Tipo vehiculo','Tipo bateria',
-    'Odometro ingresado','Unidad','Odometro km','Delta Formacion','Ea','k_tiempo',
-    'Factor uso','Garantia','D_tiempo','D_km','SOH'];
-  var rows = [cols.join(',')];
-  for (var i = 0; i < records.length; i++) {
-    var r = records[i];
-    rows.push([
-      i + 1, r.marca, r.modelo, r.mes, r.anio, r.dias, r.tipo_veh, r.tipo_bat,
-      r.odo_raw, r.odo_unit, parseFloat(r.odo_km).toFixed(2),
-      r.delta, r.ea, r.k, r.factor, r.garantia,
-      parseFloat(r.d_tiempo).toFixed(8),
-      parseFloat(r.d_km).toFixed(8),
-      parseFloat(r.soh).toFixed(8)
-    ].join(','));
-  }
-  var csv  = '\uFEFF' + rows.join('\n');
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-  var a    = document.createElement('a');
-  a.href   = URL.createObjectURL(blob);
-  a.download = 'registros_SOH.csv';
-  a.click();
-}
-
-// ─────────────────────────────────────────────────────────────
-//  TOAST
-// ─────────────────────────────────────────────────────────────
-function mostrarToast(msg, isError) {
-  var t = document.getElementById('toast');
-  t.textContent = msg;
-  t.className   = 'toast' + (isError ? ' error' : '');
-  t.classList.add('show');
-  setTimeout(function() { t.classList.remove('show'); }, 3000);
-}
-</script>
-
 <script>
 // ─────────────────────────────────────────────────────────────
 //  CARGA INICIAL
 // ─────────────────────────────────────────────────────────────
 
 // ── Reemplaza con tu URL de Apps Script ──────────────────────
-var GAS_API_URL = 'https://script.googleusercontent.com/a/macros/mop.gob.sv/echo?user_content_key=AUkAhnSKlSesYqHaY4IXUg3sX20dh2V9S2MIrI1Q7KY3OBWq9Hiw1QAD86efsaF0XrYC0pw4UsVKQfm2tXO8eglNgeUX3mt35QHgL1OGKAxOThbHhB3J7sMyZbOLA_ZrpSJUrZw0Ek0LJYYVVUbtsQFpgai1O1d_iQWVH2TQ7X4woi7DDZ509z-EUIAk7Tr5WQWo40kwI568C-3_kkthMCa0yq0x5xzYQCkVg53NB5xrSlC-sk5Tu9L4WIdEICPKNN_gcksSvDgIk_3lIRg7sIOiK78-q8VY21U6UpUJMb5L&lib=MAnsMFrThDhckCzxV-l7wPcDedCegkdek';
+var GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxhovb8qupafcnTKPss3jhwjngG15kKEn0C_mousYzVuvGXqroyL1Xu7522M2Il_ir8iA/exec';
 
 // ── JSONP engine (bypass CORS) ────────────────────────────────
 var _cbIdx = 0;
@@ -964,6 +460,48 @@ var acData   = { marca: [], modelo: [] };  // listas únicas desde Sheets
 var acActive = { marca: -1, modelo: -1 }; // índice de item resaltado
 
 // Extrae únicos de los registros ya cargados
+
+
+// ─────────────────────────────────────────────────────────────
+//  PARÁMETROS (sin caracteres especiales en las keys para
+//  evitar problemas de encoding en GAS)
+// ─────────────────────────────────────────────────────────────
+var PARAMS = {
+  bateria: {
+    LFP:  { delta: 1.75, ea: 37300, k: 0.0145 },
+    NMC:  { delta: 0.85, ea: 52500, k: 0.0135 },
+    NCA:  { delta: 1.15, ea: 50000, k: 0.0105 },
+    NiMH: { delta: 0.50, ea: 42500, k: 0.0180 }
+  },
+  vehiculo: {
+    Electrico:        { factor: 1.00, garantia: 161000 },
+    Hibrido:          { factor: 0.40, garantia: 161000 },
+    'Hibrido Electrico': { factor: 0.68, garantia: 161000 },
+    PHEV:             { factor: 0.75, garantia: 128700 }
+  },
+  R: 8.314, T_alta: 305.15, T_ref: 293.15, MI_TO_KM: 1.60934
+};
+
+// Nombres para mostrar en la tabla
+var NOMBRES_VEH = {
+  Electrico: 'El\u00e9ctrico',
+  Hibrido: 'H\u00edbrido',
+  'Hibrido Electrico': 'H\u00edbrido El\u00e9ctrico',
+  PHEV: 'PHEV'
+};
+
+var MESES = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+var records = [];
+var currentResult = null; // resultado del ultimo calculo
+
+// ─────────────────────────────────────────────────────────────
+//  AUTOCOMPLETADO — MARCA Y MODELO
+// ─────────────────────────────────────────────────────────────
+var acData   = { marca: [], modelo: [] };  // listas únicas desde Sheets
+var acActive = { marca: -1, modelo: -1 }; // índice de item resaltado
+
+// Extrae únicos de los registros ya cargados
 function acActualizarDesdeRegistros() {
   var marcas  = {};
   var modelos = {};
@@ -1072,6 +610,13 @@ function acResaltarItem(campo, items) {
     items[acActive[campo]].scrollIntoView({ block: 'nearest' });
   }
 }
+
+
+
+// ─────────────────────────────────────────────────────────────
+//  CARGA INICIAL
+// ─────────────────────────────────────────────────────────────
+
 
 
 
@@ -1289,28 +834,13 @@ function guardarRegistro() {
   };
 
   var btn = document.getElementById('save-btn');
-  if (btn.disabled) return;   // prevent double-submit
+  if (btn.disabled) return;  // prevent double-submit
   btn.disabled    = true;
   btn.textContent = '\u23f3 Guardando...';
 
-  apiPost({ action: 'save', record: record }, function(result) {
-    btn.disabled    = false;
-    btn.textContent = '\ud83d\udcbe Guardar en la tabla';
-    if (result && result.success) {
-      record.id = result.id;
-      records.push(record);
-      renderTabla();
-      acActualizarDesdeRegistros();
-      limpiarFormulario();
-      mostrarToast('\u2714 Guardado en Google Sheets');
-    } else {
-      mostrarToast('\u2716 Error: ' + (result ? result.error : 'desconocido'), true);
-    }
-  }, function() {
-    btn.disabled    = false;
-    btn.textContent = '\ud83d\udcbe Guardar en la tabla';
-    mostrarToast('\u2716 Error de conexi\u00f3n con Google Sheets', true);
-  });
+  
+    })
+    .saveRecord(record);
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -1360,17 +890,9 @@ function renderTabla() {
 // ─────────────────────────────────────────────────────────────
 function eliminarRegistro(idx) {
   if (!confirm('¿Eliminar este registro? También se borrará de Google Sheets.')) return;
-  apiPost({ action: 'delete', index: idx }, function(result) {
-    if (result && result.success) {
-      records.splice(idx, 1);
-      renderTabla();
-      mostrarToast('\ud83d\uddd1 Registro eliminado');
-    } else {
-      mostrarToast('Error al eliminar', true);
-    }
-  }, function() {
-    mostrarToast('Error de conexi\u00f3n', true);
-  });
+  
+    })
+    .deleteRecord(idx);
 }
 
 // ─────────────────────────────────────────────────────────────
