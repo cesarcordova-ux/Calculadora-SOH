@@ -270,7 +270,7 @@
   </div>
 
   <!-- PARÁMETROS -->
-  <div class="card">
+  <div class="card" style="display:none">
     <div class="section-title">⚙️ Parámetros de batería (auto-completados)</div>
     <div class="form-grid">
       <div class="form-group"><label>Δ de formación</label><input type="text" id="delta_form" readonly /></div>
@@ -282,7 +282,7 @@
   </div>
 
   <!-- VALORES CALCULADOS -->
-  <div class="card">
+  <div class="card" style="display:none">
     <div class="section-title">📐 Valores calculados</div>
     <div class="computed-grid">
       <div class="computed-item">
@@ -325,19 +325,29 @@
       <div class="section-title" style="margin:0">📋 Registros guardados</div>
       <button class="btn-export" onclick="exportarCSV()">⬇ Exportar CSV</button>
     </div>
+    <!-- Búsqueda -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:0.75rem;">
+      <input type="text" id="busq-marca"  placeholder="🔍 Marca"  oninput="filtrarTabla()"
+             style="flex:1;min-width:120px;border:1px solid #c8d4d0;border-radius:6px;padding:7px 10px;font-size:0.82rem;outline:none;" />
+      <input type="text" id="busq-modelo" placeholder="🔍 Modelo" oninput="filtrarTabla()"
+             style="flex:1;min-width:120px;border:1px solid #c8d4d0;border-radius:6px;padding:7px 10px;font-size:0.82rem;outline:none;" />
+      <input type="number" id="busq-anio" placeholder="🔍 Año"    oninput="filtrarTabla()"
+             style="flex:1;min-width:90px;border:1px solid #c8d4d0;border-radius:6px;padding:7px 10px;font-size:0.82rem;outline:none;" />
+      <button onclick="limpiarBusqueda()" style="padding:7px 12px;border-radius:6px;font-size:0.8rem;font-weight:600;cursor:pointer;border:1px solid #c8d4d0;background:#fff;color:#555;">✕ Limpiar</button>
+    </div>
     <div class="swipe-hint">← Desliza para ver más columnas →</div>
     <div class="table-wrap">
       <table>
         <thead>
           <tr>
-            <th>#</th><th>Marca</th><th>Modelo</th><th>Mes</th><th>Año</th><th>Días</th>
-            <th>Tipo veh.</th><th>Tipo bat.</th><th>Odómetro (km)</th>
-            <th>Δ Form.</th><th>E_a</th><th>k_t</th><th>F. uso</th><th>Garantía</th>
-            <th>D_tiempo</th><th>D_km</th><th>SOH</th><th></th>
+            <th>#</th><th>Marca</th><th>Modelo</th><th style="display:none">Mes</th><th>Año</th><th style="display:none">Días</th>
+            <th>Tipo veh.</th><th style="display:none">Tipo bat.</th><th style="display:none">Odómetro (km)</th>
+            <th style="display:none">Δ Form.</th><th style="display:none">E_a</th><th style="display:none">k_t</th><th style="display:none">F. uso</th><th style="display:none">Garantía</th>
+            <th style="display:none">D_tiempo</th><th style="display:none">D_km</th><th>SOH</th><th></th>
           </tr>
         </thead>
         <tbody id="records-body">
-          <tr><td colspan="18" class="empty-msg" id="loading-msg">⏳ Cargando registros...</td></tr>
+          <tr><td colspan="11" class="empty-msg" id="loading-msg">⏳ Cargando registros...</td></tr>
         </tbody>
       </table>
     </div>
@@ -799,42 +809,74 @@ function guardarRegistro() {
 }
 
 // ─────────────────────────────────────────────────────────────
+//  FILTRAR TABLA
+// ─────────────────────────────────────────────────────────────
+function filtrarRegistros() {
+  var marca  = (document.getElementById('busq-marca').value  || '').trim().toUpperCase();
+  var modelo = (document.getElementById('busq-modelo').value || '').trim().toUpperCase();
+  var anio   = (document.getElementById('busq-anio').value   || '').trim();
+  return records.filter(function(r) {
+    var okMarca  = !marca  || (r.marca  || '').toUpperCase().indexOf(marca)  >= 0;
+    var okModelo = !modelo || (r.modelo || '').toUpperCase().indexOf(modelo) >= 0;
+    var okAnio   = !anio   || String(r.anio).indexOf(anio) >= 0;
+    return okMarca && okModelo && okAnio;
+  });
+}
+
+function filtrarTabla() {
+  renderTabla();
+}
+
+function limpiarBusqueda() {
+  document.getElementById('busq-marca').value  = '';
+  document.getElementById('busq-modelo').value = '';
+  document.getElementById('busq-anio').value   = '';
+  renderTabla();
+}
+
+// ─────────────────────────────────────────────────────────────
 //  RENDERIZAR TABLA
 // ─────────────────────────────────────────────────────────────
 function renderTabla() {
   var tbody = document.getElementById('records-body');
   if (!records || records.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="18" class="empty-msg">Sin registros guardados aún.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-msg">Sin registros guardados aún.</td></tr>';
+    return;
+  }
+  var filtrados = filtrarRegistros();
+  if (filtrados.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="11" class="empty-msg">Sin resultados para la búsqueda.</td></tr>';
     return;
   }
   var html = '';
-  for (var i = 0; i < records.length; i++) {
-    var r       = records[i];
+  for (var i = 0; i < filtrados.length; i++) {
+    var r       = filtrados[i];
     var pct     = (r.soh * 100).toFixed(2);
     var cls     = r.soh >= 0.8 ? 'badge-green' : r.soh >= 0.6 ? 'badge-amber' : 'badge-red';
     var odoDisp = (r.odo_unit === 'mi')
       ? r.odo_raw + ' mi (' + parseFloat(r.odo_km).toFixed(0) + ' km)'
       : parseFloat(r.odo_km).toFixed(1) + ' km';
     var nomVeh  = NOMBRES_VEH[r.tipo_veh] || r.tipo_veh;
+    var origIdx = records.indexOf(r);
     html += '<tr>' +
-      '<td>' + (i + 1) + '</td>' +
+      '<td>' + (origIdx + 1) + '</td>' +
       '<td>' + r.marca + '</td>' +
       '<td>' + r.modelo + '</td>' +
-      '<td>' + (MESES[r.mes] || r.mes) + '</td>' +
+      '<td style="display:none">' + (MESES[r.mes] || r.mes) + '</td>' +
       '<td>' + r.anio + '</td>' +
-      '<td>' + r.dias + '</td>' +
+      '<td style="display:none">' + r.dias + '</td>' +
       '<td>' + nomVeh + '</td>' +
-      '<td>' + r.tipo_bat + '</td>' +
-      '<td>' + odoDisp + '</td>' +
-      '<td>' + r.delta + '</td>' +
-      '<td>' + r.ea + '</td>' +
-      '<td>' + r.k + '</td>' +
-      '<td>' + r.factor + '</td>' +
-      '<td>' + r.garantia + '</td>' +
-      '<td>' + parseFloat(r.d_tiempo).toFixed(6) + '</td>' +
-      '<td>' + parseFloat(r.d_km).toFixed(6) + '</td>' +
+      '<td style="display:none">' + r.tipo_bat + '</td>' +
+      '<td style="display:none">' + odoDisp + '</td>' +
+      '<td style="display:none">' + r.delta + '</td>' +
+      '<td style="display:none">' + r.ea + '</td>' +
+      '<td style="display:none">' + r.k + '</td>' +
+      '<td style="display:none">' + r.factor + '</td>' +
+      '<td style="display:none">' + r.garantia + '</td>' +
+      '<td style="display:none">' + parseFloat(r.d_tiempo).toFixed(6) + '</td>' +
+      '<td style="display:none">' + parseFloat(r.d_km).toFixed(6) + '</td>' +
       '<td><span class="badge ' + cls + '">' + pct + '%</span></td>' +
-      '<td><button class="del-btn" onclick="eliminarRegistro(' + i + ')" title="Eliminar">🗑</button></td>' +
+      '<td><button class="del-btn" onclick="eliminarRegistro(' + origIdx + ')" title="Eliminar">🗑</button></td>' +
       '</tr>';
   }
   tbody.innerHTML = html;
