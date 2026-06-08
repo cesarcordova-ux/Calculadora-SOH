@@ -1,837 +1,931 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#0F6E56" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="SOH Calc" />
-    <link rel="manifest" href="manifest.json" />
-    <title>Calculadora SOH</title>
-    <style>
-      /* --- CSS (se recomienda mover a style.css) --- */
-      /* Añadido: Variables de color para fácil mantenimiento */
-      :root {
-        --c-primary: #0F6E56;
-        --c-primary-dark: #085041;
-        --c-primary-light: #E1F5EE;
-        --c-error: #A32D2D;
-        --c-amber: #854F0B;
-        --c-text: #222;
-        --c-text-muted: #555;
-        --c-bg: #f4f7f5;
-        --c-border: #c8d4d0;
-      }
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body { overflow-x: hidden; }
-      body {
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: var(--c-bg);
-        color: var(--c-text);
-        padding: 1.5rem 1rem;
-      }
-      .container { width: 100%; max-width: 960px; margin: 0 auto; }
-      .page-header { background: var(--c-primary); color: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
-      .page-header h1 { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
-      .page-header p  { font-size: 0.82rem; opacity: 0.85; }
-      .card { background: #fff; border: 0.5px solid #d0d5d3; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
-      .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--c-primary); margin-bottom: 0.85rem; }
-      .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-      .form-group { display: flex; flex-direction: column; gap: 5px; }
-      .form-group label { font-size: 0.72rem; font-weight: 600; color: var(--c-text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
-      .form-group input, .form-group select { border: 1px solid var(--c-border); border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; background: #fff; color: var(--c-text); outline: none; transition: border-color 0.15s; }
-      .form-group input:focus, .form-group select:focus { border-color: var(--c-primary); box-shadow: 0 0 0 2px rgba(15,110,86,0.12); }
-      .form-group input[readonly] { background: #f0f8f5; color: #444; cursor: default; }
-      .date-row { display: flex; gap: 8px; }
-      .date-row input { flex: 1; min-width: 0; }
-      .date-hint { font-size: 0.72rem; color: #888; margin-top: 2px; }
-      .date-error { font-size: 0.72rem; color: var(--c-error); font-weight: 600; margin-top: 2px; display: none; }
-      input.input-error { border-color: var(--c-error) !important; box-shadow: 0 0 0 2px rgba(163,45,45,0.12) !important; }
-      .ac-wrap { position: relative; }
-      .ac-dropdown {
-        position: absolute; top: calc(100% + 3px); left: 0; right: 0;
-        background: #fff; border: 1px solid var(--c-primary); border-radius: 6px;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.12); z-index: 999;
-        max-height: 180px; overflow-y: auto; display: none;
-      }
-      .ac-dropdown.open { display: block; }
-      .ac-item { padding: 8px 12px; font-size: 0.85rem; cursor: pointer; border-bottom: 0.5px solid #f0f0f0; color: var(--c-text); transition: background 0.1s; }
-      .ac-item:last-child { border-bottom: none; }
-      .ac-item:hover, .ac-item.active { background: var(--c-primary-light); color: var(--c-primary); font-weight: 600; }
-      .ac-item mark { background: none; color: var(--c-primary); font-weight: 700; }
-      input.input-ok { border-color: var(--c-primary) !important; }
-      .odo-input-row { display: flex; }
-      .odo-input-row input { border-radius: 6px 0 0 6px; border-right: none; flex: 1; min-width: 0; }
-      .odo-unit-badge { padding: 0 10px; min-width: 44px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; border: 1px solid var(--c-border); border-left: none; border-radius: 0 6px 6px 0; background: #e8f5ef; color: var(--c-primary); transition: background 0.15s; }
-      .odo-unit-badge.miles { background: #faeeda; color: var(--c-amber); border-color: #f0c878; }
-      .odo-miles-row { display: flex; align-items: center; gap: 7px; margin-top: 5px; cursor: pointer; }
-      .odo-miles-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: var(--c-primary); cursor: pointer; }
-      .odo-miles-row span { font-size: 0.78rem; color: #666; user-select: none; }
-      .odo-converted { font-size: 0.75rem; color: var(--c-primary); font-weight: 600; min-height: 16px; margin-top: 3px; }
-      .computed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-      .computed-item { background: #f0f8f5; border: 0.5px solid #9FE1CB; border-radius: 8px; padding: 10px 14px; }
-      .computed-item .lbl { font-size: 0.68rem; color: var(--c-text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 3px; }
-      .computed-item .val { font-size: 1.1rem; font-weight: 700; color: var(--c-primary-dark); }
-      .soh-box { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
-      .soh-number { font-size: 2.8rem; font-weight: 700; color: var(--c-primary); min-width: 120px; transition: color 0.3s; }
-      .soh-number.amber { color: var(--c-amber); }
-      .soh-number.red   { color: var(--c-error); }
-      .soh-right { flex: 1; min-width: 160px; }
-      .soh-bar-bg { background: #e0e0e0; border-radius: 6px; height: 10px; overflow: hidden; margin-bottom: 6px; }
-      .soh-bar-fill { height: 10px; border-radius: 6px; width: 0%; transition: width 0.4s, background 0.4s; background: var(--c-primary); }
-      .soh-status { font-size: 0.82rem; color: var(--c-text-muted); }
-      .soh-save-wrap { margin-top: 14px; display: none; }
-      .soh-save-wrap button { padding: 10px 24px; border-radius: 6px; font-size: 0.9rem; font-weight: 700; cursor: pointer; border: none; background: var(--c-primary); color: #fff; width: 100%; transition: opacity 0.15s; }
-      .soh-save-wrap button:hover { opacity: 0.88; }
-      .soh-save-wrap button:disabled { background: #9FE1CB; cursor: not-allowed; opacity: 0.7; }
-      .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; }
-      .btn-secondary { padding: 9px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: 1px solid var(--c-border); background: #fff; color: var(--c-text-muted); transition: background 0.15s; }
-      .btn-secondary:hover { background: #f0f8f5; }
-      .btn-export { padding: 7px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid var(--c-border); background: #fff; color: var(--c-text-muted); }
-      .btn-export:hover { background: #f0f8f5; }
-      .table-hdr { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 0.75rem; }
-      .table-hdr .section-title { margin: 0; }
-      .table-wrap { overflow-x: auto; border-radius: 8px; border: 0.5px solid #d0d5d3; -webkit-overflow-scrolling: touch; }
-      table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 980px; }
-      .swipe-hint { display: none; font-size: 0.7rem; color: #888; text-align: center; padding: 4px 0 6px; }
-      th { background: var(--c-primary); color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; white-space: nowrap; }
-      td { padding: 7px 10px; border-bottom: 0.5px solid #e8eeed; color: var(--c-text); white-space: nowrap; }
-      tr:last-child td { border-bottom: none; }
-      tr:hover td { background: #f7faf9; }
-      .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; }
-      .badge-green { background: #EAF3DE; color: #27500A; }
-      .badge-amber { background: #FAEEDA; color: #854F0B; }
-      .badge-red   { background: #FCEBEB; color: #791F1F; }
-      .del-btn { background: none; border: none; cursor: pointer; color: #aaa; font-size: 1rem; padding: 2px 4px; }
-      .del-btn:hover { color: var(--c-error); }
-      .empty-msg { text-align: center; padding: 2rem; color: #888; font-size: 0.85rem; }
-      .legend { font-size: 0.72rem; color: #777; margin-top: 0.5rem; }
-      .legend span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
-      .toast { position: fixed; bottom: 2rem; right: 2rem; background: var(--c-primary); color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.18); opacity: 0; transform: translateY(10px); transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 999; }
-      .toast.show { opacity: 1; transform: translateY(0); }
-      .toast.error { background: var(--c-error); }
-      @media screen and (max-width: 768px) {
-        body { padding: 1rem 0.75rem; }
-        .page-header h1 { font-size: 1rem; }
-        .soh-number { font-size: 2.2rem; }
-        .swipe-hint { display: block; }
-      }
-      @media screen and (max-width: 600px) {
-        body { padding: 0.6rem 0.5rem; }
-        .page-header { padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
-        .page-header h1 { font-size: 0.92rem; }
-        .page-header p  { font-size: 0.72rem; }
-        .card { padding: 0.85rem 0.75rem; border-radius: 8px; margin-bottom: 0.85rem; }
-        .section-title { font-size: 0.7rem; margin-bottom: 0.6rem; }
-        .form-grid { grid-template-columns: 1fr; gap: 10px; }
-        .computed-grid { grid-template-columns: 1fr; gap: 8px; }
-        .computed-item .lbl { font-size: 0.62rem; }
-        .computed-item .val { font-size: 0.95rem; }
-        .soh-box { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
-        .soh-number { font-size: 2.4rem; min-width: unset; display: block; }
-        .soh-right { width: 100%; }
-        .soh-save-wrap button { font-size: 0.85rem; padding: 10px; }
-        .btn-row { margin-bottom: 1rem; }
-        .btn-secondary { font-size: 0.85rem; padding: 8px 14px; }
-        .date-row { gap: 6px; }
-        .odo-unit-badge { min-width: 36px; font-size: 0.75rem; padding: 0 7px; }
-        .ac-dropdown { font-size: 0.82rem; }
-        .ac-item { padding: 9px 10px; }
-        .table-wrap { overflow-x: scroll; -webkit-overflow-scrolling: touch; }
-        table { min-width: 0; width: max-content; font-size: 0.7rem; }
-        th, td { padding: 6px 8px; white-space: nowrap; }
-        .toast { bottom: 0.75rem; right: 0.5rem; left: 0.5rem; text-align: center; font-size: 0.8rem; }
-        .legend { font-size: 0.68rem; line-height: 1.8; }
-        .table-hdr { flex-direction: column; align-items: flex-start; gap: 6px; }
-        .btn-export { width: 100%; text-align: center; }
-      }
-      @media screen and (max-width: 400px) {
-        body { padding: 0.5rem; }
-        .page-header h1 { font-size: 0.85rem; }
-        .section-title { font-size: 0.66rem; }
-        .form-group label { font-size: 0.63rem; }
-        .form-group input, .form-group select { font-size: 0.82rem; padding: 7px 8px; }
-        .soh-number { font-size: 2rem; }
-        .card { padding: 0.7rem 0.6rem; }
-      }
-    </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#0F6E56" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="SOH Calc" />
+<link rel="manifest" href="manifest.json" />
+<title>Calculadora SOH</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { overflow-x: hidden; }
+  body {
+    font-family: Arial, sans-serif;
+    background: #f4f7f5;
+    color: #222;
+    padding: 1.5rem 1rem;
+  }
+  .container { width: 100%; max-width: 960px; margin: 0 auto; }
+
+  /* ── Header ── */
+  .page-header { background: #0F6E56; color: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+  .page-header h1 { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
+  .page-header p  { font-size: 0.82rem; opacity: 0.85; }
+
+  /* ── Cards ── */
+  .card { background: #fff; border: 0.5px solid #d0d5d3; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+  .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: #0F6E56; margin-bottom: 0.85rem; }
+
+  /* ── Form grid ── */
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label { font-size: 0.72rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
+  .form-group input,
+  .form-group select { border: 1px solid #c8d4d0; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; background: #fff; color: #222; outline: none; transition: border-color 0.15s; width: 100%; }
+  .form-group input:focus,
+  .form-group select:focus { border-color: #0F6E56; box-shadow: 0 0 0 2px rgba(15,110,86,0.12); }
+  .form-group input[readonly] { background: #f0f8f5; color: #444; cursor: default; }
+  input.input-ok    { border-color: #0F6E56 !important; }
+  input.input-error { border-color: #A32D2D !important; box-shadow: 0 0 0 2px rgba(163,45,45,0.12) !important; }
+
+  /* ── Date ── */
+  .date-row { display: flex; gap: 8px; }
+  .date-row input { flex: 1; min-width: 0; }
+  .date-hint  { font-size: 0.72rem; color: #888; margin-top: 2px; }
+  .date-error { font-size: 0.72rem; color: #A32D2D; font-weight: 600; margin-top: 2px; display: none; }
+
+  /* ── Autocomplete ── */
+  .ac-wrap { position: relative; }
+  .ac-dropdown {
+    position: absolute; top: calc(100% + 3px); left: 0; right: 0;
+    background: #fff; border: 1px solid #0F6E56; border-radius: 6px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.12); z-index: 999;
+    max-height: 180px; overflow-y: auto; display: none;
+  }
+  .ac-dropdown.open { display: block; }
+  .ac-item { padding: 8px 12px; font-size: 0.85rem; cursor: pointer; border-bottom: 0.5px solid #f0f0f0; color: #222; transition: background 0.1s; }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:hover, .ac-item.active { background: #E1F5EE; color: #0F6E56; font-weight: 600; }
+  .ac-item mark { background: none; color: #0F6E56; font-weight: 700; }
+
+  /* ── Odometer ── */
+  .odo-input-row { display: flex; }
+  .odo-input-row input { border-radius: 6px 0 0 6px; border-right: none; flex: 1; min-width: 0; }
+  .odo-unit-badge { padding: 0 10px; min-width: 44px; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 700; border: 1px solid #c8d4d0; border-left: none; border-radius: 0 6px 6px 0; background: #e8f5ef; color: #0F6E56; transition: background 0.15s; flex-shrink: 0; }
+  .odo-unit-badge.miles { background: #faeeda; color: #854F0B; border-color: #f0c878; }
+  .odo-miles-row { display: flex; align-items: center; gap: 7px; margin-top: 5px; cursor: pointer; }
+  .odo-miles-row input[type="checkbox"] { width: 14px; height: 14px; accent-color: #0F6E56; cursor: pointer; flex-shrink: 0; }
+  .odo-miles-row span { font-size: 0.78rem; color: #666; user-select: none; }
+  .odo-converted { font-size: 0.75rem; color: #0F6E56; font-weight: 600; min-height: 16px; margin-top: 3px; }
+
+  /* ── Computed values ── */
+  .computed-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .computed-item { background: #f0f8f5; border: 0.5px solid #9FE1CB; border-radius: 8px; padding: 10px 14px; }
+  .computed-item .lbl { font-size: 0.68rem; color: #555; font-weight: 600; text-transform: uppercase; margin-bottom: 3px; }
+  .computed-item .val { font-size: 1.1rem; font-weight: 700; color: #085041; }
+
+  /* ── SOH result ── */
+  .soh-box { display: flex; align-items: center; gap: 1.5rem; flex-wrap: wrap; }
+  .soh-number { font-size: 2.8rem; font-weight: 700; color: #0F6E56; min-width: 120px; transition: color 0.3s; }
+  .soh-number.amber { color: #854F0B; }
+  .soh-number.red   { color: #A32D2D; }
+  .soh-right { flex: 1; min-width: 160px; }
+  .soh-bar-bg   { background: #e0e0e0; border-radius: 6px; height: 10px; overflow: hidden; margin-bottom: 6px; }
+  .soh-bar-fill { height: 10px; border-radius: 6px; width: 0%; transition: width 0.4s, background 0.4s; background: #0F6E56; }
+  .soh-status   { font-size: 0.82rem; color: #555; }
+  .soh-save-wrap { margin-top: 14px; display: none; }
+  .soh-save-wrap button { padding: 10px 24px; border-radius: 6px; font-size: 0.9rem; font-weight: 700; cursor: pointer; border: none; background: #0F6E56; color: #fff; width: 100%; transition: opacity 0.15s; }
+  .soh-save-wrap button:hover     { opacity: 0.88; }
+  .soh-save-wrap button:disabled  { background: #9FE1CB; cursor: default; opacity: 1; }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .btn-secondary { padding: 9px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: 1px solid #c8d4d0; background: #fff; color: #555; transition: background 0.15s; }
+  .btn-secondary:hover { background: #f0f8f5; }
+  .btn-export { padding: 7px 14px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; border: 1px solid #c8d4d0; background: #fff; color: #555; }
+  .btn-export:hover { background: #f0f8f5; }
+
+  /* ── Table ── */
+  .table-hdr { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 0.75rem; }
+  .table-hdr .section-title { margin: 0; }
+  .swipe-hint { display: none; font-size: 0.7rem; color: #888; text-align: center; padding: 4px 0 6px; }
+  .table-wrap { overflow-x: auto; border-radius: 8px; border: 0.5px solid #d0d5d3; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 980px; }
+  th { background: #0F6E56; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; white-space: nowrap; }
+  td { padding: 7px 10px; border-bottom: 0.5px solid #e8eeed; color: #222; white-space: nowrap; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f7faf9; }
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; }
+  .badge-green { background: #EAF3DE; color: #27500A; }
+  .badge-amber { background: #FAEEDA; color: #854F0B; }
+  .badge-red   { background: #FCEBEB; color: #791F1F; }
+  .del-btn { background: none; border: none; cursor: pointer; color: #aaa; font-size: 1rem; padding: 2px 6px; }
+  .del-btn:hover { color: #A32D2D; }
+  .empty-msg { text-align: center; padding: 2rem; color: #888; font-size: 0.85rem; }
+  .legend { font-size: 0.72rem; color: #777; margin-top: 0.5rem; }
+  .legend span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
+
+  /* ── Toast ── */
+  .toast { position: fixed; bottom: 2rem; right: 2rem; background: #0F6E56; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.18); opacity: 0; transform: translateY(10px); transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 1000; }
+  .toast.show  { opacity: 1; transform: translateY(0); }
+  .toast.error { background: #A32D2D; }
+
+  /* ── Responsive: tablet ≤ 768px ── */
+  @media screen and (max-width: 768px) {
+    body { padding: 1rem 0.75rem; }
+    .page-header h1 { font-size: 1rem; }
+    .soh-number { font-size: 2.2rem; }
+    .swipe-hint { display: block; }
+  }
+
+  /* ── Responsive: mobile ≤ 600px ── */
+  @media screen and (max-width: 600px) {
+    body { padding: 0.6rem 0.5rem; }
+    .page-header { padding: 0.85rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    .page-header h1 { font-size: 0.92rem; }
+    .page-header p  { font-size: 0.72rem; }
+    .card { padding: 0.85rem 0.75rem; border-radius: 8px; margin-bottom: 0.85rem; }
+    .section-title { font-size: 0.7rem; margin-bottom: 0.6rem; }
+    .form-grid { grid-template-columns: 1fr; gap: 10px; }
+    .computed-grid { grid-template-columns: 1fr; gap: 8px; }
+    .computed-item .lbl { font-size: 0.62rem; }
+    .computed-item .val { font-size: 0.95rem; }
+    .soh-box { flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+    .soh-number { font-size: 2.4rem; min-width: unset; }
+    .soh-right { width: 100%; }
+    .soh-save-wrap button { font-size: 0.85rem; padding: 10px; }
+    .btn-row { margin-bottom: 1rem; }
+    .btn-secondary { font-size: 0.85rem; padding: 8px 14px; }
+    .odo-unit-badge { min-width: 36px; font-size: 0.75rem; padding: 0 7px; }
+    .table-wrap { overflow-x: scroll; }
+    table { min-width: 0; width: max-content; font-size: 0.7rem; }
+    th, td { padding: 6px 8px; }
+    .toast { bottom: 0.75rem; right: 0.5rem; left: 0.5rem; text-align: center; font-size: 0.8rem; }
+    .legend { font-size: 0.68rem; line-height: 1.8; }
+    .table-hdr { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .btn-export { width: 100%; text-align: center; }
+  }
+
+  /* ── Responsive: small mobile ≤ 400px ── */
+  @media screen and (max-width: 400px) {
+    body { padding: 0.5rem; }
+    .page-header h1 { font-size: 0.85rem; }
+    .section-title { font-size: 0.66rem; }
+    .form-group label { font-size: 0.63rem; }
+    .form-group input, .form-group select { font-size: 0.82rem; padding: 7px 8px; }
+    .soh-number { font-size: 2rem; }
+    .card { padding: 0.7rem 0.6rem; }
+  }
+</style>
 </head>
 <body>
-    <!-- Corregido: Se eliminó el <body> duplicado. -->
-    <!-- Mejorado: Se usan etiquetas semánticas como <header> y <section> -->
-    <div class="container">
 
-        <header class="page-header">
-            <h1>🔋 Calculadora de SOH — Baterías de Vehículos</h1>
-            <p>Los registros se guardan automáticamente en Google Sheets</p>
-        </header>
+<div class="container">
 
-        <section class="card" aria-labelledby="title-datos">
-            <h2 class="section-title" id="title-datos">🚗 Datos del vehículo</h2>
-            <div class="form-grid">
-                <div class="form-group">
-                    <label for="marca">Marca</label>
-                    <div class="ac-wrap" id="wrap-marca">
-                        <!-- Optimizado: Se eliminaron los eventos en línea (oninput, onkeydown, etc.) -->
-                        <input type="text" id="marca" placeholder="Ej. TOYOTA" autocomplete="off" style="text-transform:uppercase" />
-                        <div class="ac-dropdown" id="ac-marca"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label for="modelo">Modelo</label>
-                    <div class="ac-wrap" id="wrap-modelo">
-                        <input type="text" id="modelo" placeholder="Ej. SEQUOIA" autocomplete="off" style="text-transform:uppercase" />
-                        <div class="ac-dropdown" id="ac-modelo"></div>
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>Fecha de fabricación</label>
-                    <div class="date-row">
-                        <input type="number" id="mes_fab" placeholder="Mes" min="1" max="12" />
-                        <input type="number" id="anio_fab" placeholder="Año" min="0" max="99" />
-                    </div>
-                    <div class="date-hint" id="date-hint">Mes (1–12) y año abreviado (ej: 23 → 2023)</div>
-                    <div class="date-error" id="mes-error">⚠ El mes debe ser entre 1 y 12</div>
-                </div>
-                <input type="hidden" id="anio_resuelto" />
-                <div class="form-group">
-                    <label for="dias_fab">Días de fabricación</label>
-                    <input type="text" id="dias_fab" readonly placeholder="Auto — desde el 1° del mes" />
-                </div>
-                <div class="form-group">
-                    <label for="tipo_vehiculo">Tipo de vehículo</label>
-                    <select id="tipo_vehiculo">
-                        <option value="">Seleccionar...</option>
-                        <option value="Electrico">Eléctrico</option>
-                        <option value="Hibrido">Híbrido</option>
-                        <option value="Hibrido Electrico">Híbrido Eléctrico</option>
-                        <option value="PHEV">PHEV</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="tipo_bateria">Tipo de batería</label>
-                    <select id="tipo_bateria">
-                        <option value="">Seleccionar...</option>
-                        <option value="LFP">LFP</option>
-                        <option value="NMC">NMC</option>
-                        <option value="NCA">NCA</option>
-                        <option value="NiMH">NiMH</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label for="odometro">Odómetro</label>
-                    <div class="odo-input-row">
-                        <input type="number" id="odometro" placeholder="Ej. 25443" min="0" step="0.01" />
-                        <div class="odo-unit-badge" id="odo-unit-badge">km</div>
-                    </div>
-                    <label class="odo-miles-row">
-                        <input type="checkbox" id="is_miles" />
-                        <span>El valor está en millas — convertir a km</span>
-                    </label>
-                    <div class="odo-converted" id="odo-converted"></div>
-                </div>
-            </div>
-        </section>
+  <!-- HEADER -->
+  <div class="page-header">
+    <h1>🔋 Calculadora de SOH — Baterías de Vehículos</h1>
+    <p>Los registros se guardan automáticamente en Google Sheets</p>
+  </div>
 
-        <section class="card" aria-labelledby="title-params">
-            <h2 class="section-title" id="title-params">⚙️ Parámetros de batería (auto-completados)</h2>
-            <div class="form-grid">
-                <div class="form-group"><label for="delta_form">Δ de formación</label><input type="text" id="delta_form" readonly /></div>
-                <div class="form-group"><label for="ea">E_a (J/mol)</label><input type="text" id="ea" readonly /></div>
-                <div class="form-group"><label for="k_tiempo">k_tiempo</label><input type="text" id="k_tiempo" readonly /></div>
-                <div class="form-group"><label for="factor_uso">Factor de uso</label><input type="text" id="factor_uso" readonly /></div>
-                <div class="form-group"><label for="garantia">Garantía (km)</label><input type="text" id="garantia" readonly /></div>
-            </div>
-        </section>
+  <!-- DATOS DEL VEHÍCULO -->
+  <div class="card">
+    <div class="section-title">🚗 Datos del vehículo</div>
+    <div class="form-grid">
 
-        <section class="card" aria-labelledby="title-calc">
-            <h2 class="section-title" id="title-calc">📐 Valores calculados</h2>
-            <div class="computed-grid">
-                <div class="computed-item">
-                    <div class="lbl">D_tiempo = k · √días · exp(−Ea/R · (1/305.15 − 1/293.15))</div>
-                    <div class="val" id="d_tiempo_val">—</div>
-                </div>
-                <div class="computed-item">
-                    <div class="lbl">D_km = ((odóm. / garantía) · 0.3 · factor_uso) · 100</div>
-                    <div class="val" id="d_km_val">—</div>
-                </div>
-            </div>
-        </section>
-
-        <section class="card" aria-labelledby="title-soh">
-            <h2 class="section-title" id="title-soh">✅ Estado de Salud (SOH)</h2>
-            <div style="font-size:0.78rem;color:#666;margin-bottom:10px;">SOH = (100 − (Δformación + D_tiempo + D_km)) / 100</div>
-            <div class="soh-box">
-                <div class="soh-number" id="soh-pct">—</div>
-                <div class="soh-right">
-                    <div class="soh-bar-bg"><div class="soh-bar-fill" id="soh-bar"></div></div>
-                    <div class="soh-status" id="soh-status">Ingresa los datos para calcular</div>
-                </div>
-            </div>
-            <div class="soh-save-wrap" id="soh-save-wrap">
-                <button id="save-btn">💾 Guardar en la tabla</button>
-            </div>
-        </section>
-
-        <div class="btn-row">
-            <button class="btn-secondary" id="clear-btn">Limpiar formulario</button>
+      <div class="form-group">
+        <label>Marca</label>
+        <div class="ac-wrap" id="wrap-marca">
+          <input type="text" id="marca" placeholder="Ej. TOYOTA"
+                 autocomplete="off" style="text-transform:uppercase"
+                 oninput="this.value=this.value.toUpperCase(); acFiltrar('marca')"
+                 onkeydown="acTecla(event,'marca')"
+                 onfocus="acFiltrar('marca')"
+                 onblur="acCerrar('marca',300)" />
+          <div class="ac-dropdown" id="ac-marca"></div>
         </div>
+      </div>
 
-        <section class="card" aria-labelledby="title-registros">
-            <div class="table-hdr">
-                <h2 class="section-title" id="title-registros" style="margin:0">📋 Registros guardados</h2>
-                <button class="btn-export" id="export-btn">⬇ Exportar CSV</button>
-            </div>
-            <div class="swipe-hint">← Desliza para ver más columnas →</div>
-            <div class="table-wrap">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>#</th><th>Marca</th><th>Modelo</th><th>Mes</th><th>Año</th><th>Días</th>
-                            <th>Tipo veh.</th><th>Tipo bat.</th><th>Odómetro (km)</th>
-                            <th>Δ Form.</th><th>E_a</th><th>k_t</th><th>F. uso</th><th>Garantía</th>
-                            <th>D_tiempo</th><th>D_km</th><th>SOH</th><th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="records-body">
-                        <tr><td colspan="18" class="empty-msg" id="loading-msg">⏳ Cargando registros...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="legend" style="margin-top:10px;">
-                <span style="background:#27500A"></span> ≥ 80% buen estado &nbsp;
-                <span style="background:#854F0B"></span> 60–80% desgaste moderado &nbsp;
-                <span style="background:#A32D2D"></span> &lt; 60% desgaste severo
-            </div>
-        </section>
+      <div class="form-group">
+        <label>Modelo</label>
+        <div class="ac-wrap" id="wrap-modelo">
+          <input type="text" id="modelo" placeholder="Ej. SEQUOIA"
+                 autocomplete="off" style="text-transform:uppercase"
+                 oninput="this.value=this.value.toUpperCase(); acFiltrar('modelo')"
+                 onkeydown="acTecla(event,'modelo')"
+                 onfocus="acFiltrar('modelo')"
+                 onblur="acCerrar('modelo',300)" />
+          <div class="ac-dropdown" id="ac-modelo"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Fecha de fabricación</label>
+        <div class="date-row">
+          <input type="number" id="mes_fab"  placeholder="Mes" min="1" max="12"
+                 oninput="validarMes(); updateComputed()" />
+          <input type="number" id="anio_fab" placeholder="Año" min="0" max="2099"
+                 oninput="interpretarAnio(); updateComputed()" />
+        </div>
+        <div class="date-hint"  id="date-hint">Mes (1–12) y año abreviado (ej: 23 → 2023, 04 → 2004)</div>
+        <div class="date-error" id="mes-error">⚠ El mes debe ser entre 1 y 12</div>
+        <input type="hidden" id="anio_resuelto" value="" />
+      </div>
+
+      <div class="form-group">
+        <label>Días de fabricación</label>
+        <input type="text" id="dias_fab" readonly placeholder="Auto — desde el 1° del mes" />
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de vehículo</label>
+        <select id="tipo_vehiculo" onchange="updateComputed()">
+          <option value="">Seleccionar...</option>
+          <option value="Electrico">Eléctrico</option>
+          <option value="Hibrido">Híbrido</option>
+          <option value="Hibrido Electrico">Híbrido Eléctrico</option>
+          <option value="PHEV">PHEV</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Tipo de batería</label>
+        <select id="tipo_bateria" onchange="updateComputed()">
+          <option value="">Seleccionar...</option>
+          <option value="LFP">LFP</option>
+          <option value="NMC">NMC</option>
+          <option value="NCA">NCA</option>
+          <option value="NiMH">NiMH</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Odómetro</label>
+        <div class="odo-input-row">
+          <input type="number" id="odometro" placeholder="Ej. 25443" min="0" step="0.01"
+                 oninput="updateComputed()" />
+          <div class="odo-unit-badge" id="odo-unit-badge">km</div>
+        </div>
+        <label class="odo-miles-row">
+          <input type="checkbox" id="is_miles" onchange="updateComputed()" />
+          <span>El valor está en millas — convertir a km</span>
+        </label>
+        <div class="odo-converted" id="odo-converted"></div>
+      </div>
+
     </div>
-    <div class="toast" id="toast"></div>
+  </div>
 
-    <script>
-    // ─────────────────────────────────────────────────────────────
-    //  CONFIGURACIÓN Y ESTADO GLOBAL (se recomienda mover a script.js)
-    // ─────────────────────────────────────────────────────────────
-    
-    // --- Reemplaza con tu URL de Apps Script ---
-    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxhovb8qupafcnTKPss3jhwjngG15kKEn0C_mousYzVuvGXqroyL1Xu7522M2Il_ir8iA/exec';
+  <!-- PARÁMETROS -->
+  <div class="card">
+    <div class="section-title">⚙️ Parámetros de batería (auto-completados)</div>
+    <div class="form-grid">
+      <div class="form-group"><label>Δ de formación</label><input type="text" id="delta_form" readonly /></div>
+      <div class="form-group"><label>E_a (J/mol)</label>   <input type="text" id="ea"          readonly /></div>
+      <div class="form-group"><label>k_tiempo</label>       <input type="text" id="k_tiempo"    readonly /></div>
+      <div class="form-group"><label>Factor de uso</label>  <input type="text" id="factor_uso"  readonly /></div>
+      <div class="form-group"><label>Garantía (km)</label>  <input type="text" id="garantia"    readonly /></div>
+    </div>
+  </div>
 
-    // Corregido: Se eliminó la definición duplicada de PARAMS.
-    const PARAMS = {
-        bateria: {
-            LFP:  { delta: 1.75, ea: 37300, k: 0.0145 },
-            NMC:  { delta: 0.85, ea: 52500, k: 0.0135 },
-            NCA:  { delta: 1.15, ea: 50000, k: 0.0105 },
-            NiMH: { delta: 0.50, ea: 42500, k: 0.0180 }
-        },
-        vehiculo: {
-            Electrico:        { factor: 1.00, garantia: 161000 },
-            Hibrido:          { factor: 0.40, garantia: 161000 },
-            'Hibrido Electrico': { factor: 0.68, garantia: 161000 },
-            PHEV:             { factor: 0.75, garantia: 128700 }
-        },
-        R: 8.314, T_alta: 305.15, T_ref: 293.15, MI_TO_KM: 1.60934
-    };
+  <!-- VALORES CALCULADOS -->
+  <div class="card">
+    <div class="section-title">📐 Valores calculados</div>
+    <div class="computed-grid">
+      <div class="computed-item">
+        <div class="lbl">D_tiempo = k · √días · exp(−Ea/R · (1/305.15 − 1/293.15))</div>
+        <div class="val" id="d_tiempo_val">—</div>
+      </div>
+      <div class="computed-item">
+        <div class="lbl">D_km = ((odóm. / garantía) · 0.3 · factor_uso) · 100</div>
+        <div class="val" id="d_km_val">—</div>
+      </div>
+    </div>
+  </div>
 
-    const NOMBRES_VEH = {
-        Electrico: 'Eléctrico',
-        Hibrido: 'Híbrido',
-        'Hibrido Electrico': 'Híbrido Eléctrico',
-        PHEV: 'PHEV'
-    };
-    
-    const MESES = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  <!-- SOH -->
+  <div class="card">
+    <div class="section-title">✅ Estado de Salud (SOH)</div>
+    <div style="font-size:0.78rem;color:#666;margin-bottom:10px;">
+      SOH = (100 − (Δformación + D_tiempo + D_km)) / 100
+    </div>
+    <div class="soh-box">
+      <div class="soh-number" id="soh-pct">—</div>
+      <div class="soh-right">
+        <div class="soh-bar-bg"><div class="soh-bar-fill" id="soh-bar"></div></div>
+        <div class="soh-status" id="soh-status">Ingresa los datos para calcular</div>
+      </div>
+    </div>
+    <div class="soh-save-wrap" id="soh-save-wrap">
+      <button id="save-btn" onclick="guardarRegistro()">💾 Guardar en la tabla</button>
+    </div>
+  </div>
 
-    // Optimizado: Se usa 'let' para variables que cambian.
-    let records = [];
-    let currentResult = null;
-    let acData = { marca: [], modelo: [] };
-    let acActive = { marca: -1, modelo: -1 };
-    let _cbIdx = 0; // JSONP counter
+  <!-- LIMPIAR -->
+  <div class="btn-row">
+    <button class="btn-secondary" onclick="limpiarFormulario()">Limpiar formulario</button>
+  </div>
 
-    // ─────────────────────────────────────────────────────────────
-    //  MOTOR DE API (JSONP) - Simplificado y centralizado
-    // ─────────────────────────────────────────────────────────────
-    function apiCall(action, data = null) {
-        return new Promise((resolve, reject) => {
-            const cbName = `_cb${++_cbIdx}`;
-            const timerId = setTimeout(() => {
-                cleanup();
-                reject('timeout');
-            }, 20000);
+  <!-- TABLA -->
+  <div class="card">
+    <div class="table-hdr">
+      <div class="section-title" style="margin:0">📋 Registros guardados</div>
+      <button class="btn-export" onclick="exportarCSV()">⬇ Exportar CSV</button>
+    </div>
+    <div class="swipe-hint">← Desliza para ver más columnas →</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Marca</th><th>Modelo</th><th>Mes</th><th>Año</th><th>Días</th>
+            <th>Tipo veh.</th><th>Tipo bat.</th><th>Odómetro (km)</th>
+            <th>Δ Form.</th><th>E_a</th><th>k_t</th><th>F. uso</th><th>Garantía</th>
+            <th>D_tiempo</th><th>D_km</th><th>SOH</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="records-body">
+          <tr><td colspan="18" class="empty-msg" id="loading-msg">⏳ Cargando registros...</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="legend" style="margin-top:10px;">
+      <span style="background:#27500A"></span> ≥ 80% buen estado &nbsp;
+      <span style="background:#854F0B"></span> 60–80% desgaste moderado &nbsp;
+      <span style="background:#A32D2D"></span> &lt; 60% desgaste severo
+    </div>
+  </div>
 
-            function cleanup() {
-                delete window[cbName];
-                document.getElementById(cbName)?.remove();
-                clearTimeout(timerId);
-            }
+</div><!-- /.container -->
 
-            window[cbName] = (response) => {
-                cleanup();
-                resolve(response);
-            };
+<div class="toast" id="toast"></div>
 
-            let url = `${GAS_API_URL}?action=${action}&callback=${cbName}&t=${Date.now()}`;
-            if (data) {
-                try {
-                    const json = JSON.stringify(data);
-                    const b64 = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g, (m, p1) => String.fromCharCode(`0x${p1}`)));
-                    url += `&data=${encodeURIComponent(b64)}`;
-                } catch(e) {
-                    reject(e);
-                    return;
-                }
-            }
-            
-            const script = document.createElement('script');
-            script.id = cbName;
-            script.src = url;
-            script.onerror = () => {
-                cleanup();
-                reject('script-error');
-            };
-            document.head.appendChild(script);
-        });
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────────────────
+//  CONFIGURACIÓN — pega aquí tu URL de Apps Script
+// ─────────────────────────────────────────────────────────────
+var GAS_API_URL = 'https://script.google.com/macros/s/AKfycbxhovb8qupafcnTKPss3jhwjngG15kKEn0C_mousYzVuvGXqroyL1Xu7522M2Il_ir8iA/exec';
+
+// ─────────────────────────────────────────────────────────────
+//  PARÁMETROS DE CÁLCULO
+// ─────────────────────────────────────────────────────────────
+var PARAMS = {
+  bateria: {
+    LFP:  { delta: 1.75, ea: 37300, k: 0.0145 },
+    NMC:  { delta: 0.85, ea: 52500, k: 0.0135 },
+    NCA:  { delta: 1.15, ea: 50000, k: 0.0105 },
+    NiMH: { delta: 0.50, ea: 42500, k: 0.0180 }
+  },
+  vehiculo: {
+    Electrico:           { factor: 1.00, garantia: 161000 },
+    Hibrido:             { factor: 0.40, garantia: 161000 },
+    'Hibrido Electrico': { factor: 0.68, garantia: 161000 },
+    PHEV:                { factor: 0.75, garantia: 128700 }
+  },
+  R: 8.314, T_alta: 305.15, T_ref: 293.15, MI_TO_KM: 1.60934
+};
+
+var NOMBRES_VEH = {
+  Electrico:           'Eléctrico',
+  Hibrido:             'Híbrido',
+  'Hibrido Electrico': 'Híbrido Eléctrico',
+  PHEV:                'PHEV'
+};
+
+var MESES = ['','Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// ─────────────────────────────────────────────────────────────
+//  ESTADO GLOBAL
+// ─────────────────────────────────────────────────────────────
+var records       = [];
+var currentResult = null;
+var acData        = { marca: [], modelo: [] };
+var acActive      = { marca: -1, modelo: -1 };
+
+// ─────────────────────────────────────────────────────────────
+//  API — JSONP (evita restricciones CORS)
+// ─────────────────────────────────────────────────────────────
+var _cbIdx = 0;
+
+function jsonp(url, callback, onError) {
+  var cbName  = '_cb' + (++_cbIdx);
+  var timerId = setTimeout(function() {
+    cleanup();
+    if (onError) onError('timeout');
+  }, 20000);
+
+  function cleanup() {
+    delete window[cbName];
+    var el = document.getElementById(cbName);
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+    clearTimeout(timerId);
+  }
+
+  window[cbName] = function(data) { cleanup(); callback(data); };
+
+  var sep    = url.indexOf('?') >= 0 ? '&' : '?';
+  var script = document.createElement('script');
+  script.id  = cbName;
+  script.src = url + sep + 'callback=' + cbName + '&t=' + Date.now();
+  script.onerror = function() { cleanup(); if (onError) onError('script-error'); };
+  document.head.appendChild(script);
+}
+
+function apiGet(action, callback, onError) {
+  jsonp(GAS_API_URL + '?action=' + action, callback, onError);
+}
+
+function apiPost(body, callback, onError) {
+  try {
+    var json = JSON.stringify(body);
+    // Encode UTF-8 → base64 correctamente
+    var b64  = btoa(encodeURIComponent(json).replace(/%([0-9A-F]{2})/g,
+               function(match, hex) { return String.fromCharCode(parseInt(hex, 16)); }));
+    var url  = GAS_API_URL + '?action=post&data=' + encodeURIComponent(b64);
+    jsonp(url, callback, onError);
+  } catch(e) {
+    if (onError) onError(e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CARGA INICIAL
+// ─────────────────────────────────────────────────────────────
+window.onload = function() {
+  apiGet('load',
+    function(result) {
+      if (result && result.success) {
+        records = result.records || [];
+        renderTabla();
+        acActualizarDesdeRegistros();
+      } else {
+        var el = document.getElementById('loading-msg');
+        if (el) el.textContent = 'Sin registros guardados aún.';
+      }
+    },
+    function() {
+      // Solo muestra error si realmente falla (tras 20s de timeout)
+      var el = document.getElementById('loading-msg');
+      if (el) el.textContent = '⚠ No se pudo conectar con Google Sheets.';
     }
+  );
+};
 
-    // ─────────────────────────────────────────────────────────────
-    //  LÓGICA DE LA APLICACIÓN
-    // ─────────────────────────────────────────────────────────────
-    
-    function mostrarToast(msg, isError = false) {
-        const t = document.getElementById('toast');
-        t.textContent = msg;
-        t.className = `toast show ${isError ? ' error' : ''}`;
-        setTimeout(() => t.classList.remove('show'), 3000);
+// ─────────────────────────────────────────────────────────────
+//  AUTOCOMPLETADO
+// ─────────────────────────────────────────────────────────────
+function acActualizarDesdeRegistros() {
+  var marcas = {}, modelos = {};
+  for (var i = 0; i < records.length; i++) {
+    if (records[i].marca)  marcas[records[i].marca]   = true;
+    if (records[i].modelo) modelos[records[i].modelo] = true;
+  }
+  acData.marca  = Object.keys(marcas).sort();
+  acData.modelo = Object.keys(modelos).sort();
+}
+
+function acFiltrar(campo) {
+  var input    = document.getElementById(campo);
+  var dropdown = document.getElementById('ac-' + campo);
+  var query    = input.value.trim().toUpperCase();
+  var lista    = acData[campo];
+
+  acActive[campo] = -1;
+
+  var sw = [], ct = [];
+  for (var i = 0; i < lista.length; i++) {
+    var item = lista[i].toUpperCase();
+    if (item === query) continue;
+    if (query === '' || item.indexOf(query) === 0) {
+      sw.push(lista[i]);
+    } else if (query !== '' && item.indexOf(query) > 0) {
+      ct.push(lista[i]);
     }
+  }
+  var filtrado = sw.concat(ct).slice(0, 8);
 
-    // --- Autocompletado (lógica sin cambios mayores, solo estilo de código) ---
-    function acActualizarDesdeRegistros() {
-        const marcas = new Set(records.map(r => r.marca).filter(Boolean));
-        const modelos = new Set(records.map(r => r.modelo).filter(Boolean));
-        acData.marca = [...marcas].sort();
-        acData.modelo = [...modelos].sort();
+  if (filtrado.length === 0) {
+    dropdown.innerHTML = '';
+    dropdown.classList.remove('open');
+    return;
+  }
+
+  var html = '';
+  for (var j = 0; j < filtrado.length; j++) {
+    var texto = filtrado[j];
+    if (query.length > 0) {
+      var pos = texto.toUpperCase().indexOf(query);
+      if (pos >= 0) {
+        texto = texto.substring(0, pos) +
+                '<mark>' + texto.substring(pos, pos + query.length) + '</mark>' +
+                texto.substring(pos + query.length);
+      }
     }
-    
-    function acFiltrar(campo) {
-        const input = document.getElementById(campo);
-        const dropdown = document.getElementById(`ac-${campo}`);
-        const query = input.value.trim().toUpperCase();
-        
-        acActive[campo] = -1;
-        const lista = acData[campo];
-        const sw = [], ct = [];
-        
-        for (const item of lista) {
-            const upperItem = item.toUpperCase();
-            if (upperItem === query) continue;
-            if (query === '' || upperItem.startsWith(query)) {
-                sw.push(item);
-            } else if (query !== '' && upperItem.includes(query)) {
-                ct.push(item);
-            }
-        }
-        
-        const filtrado = [...sw, ...ct].slice(0, 8);
-        if (filtrado.length === 0) {
-            dropdown.innerHTML = '';
-            dropdown.classList.remove('open');
-            return;
-        }
+    // Escape comillas simples en el valor para el atributo onclick
+    var valorEscapado = filtrado[j].replace(/'/g, "\\'");
+    html += '<div class="ac-item" data-val="' + filtrado[j] + '" ' +
+            'onmousedown="acSeleccionar(\'' + campo + '\',\'' + valorEscapado + '\')">' +
+            texto + '</div>';
+  }
+  dropdown.innerHTML = html;
+  dropdown.classList.add('open');
+}
 
-        dropdown.innerHTML = filtrado.map(texto => {
-            let highlighted = texto;
-            if (query.length > 0) {
-                const idx = texto.toUpperCase().indexOf(query);
-                if (idx >= 0) {
-                    highlighted = `${texto.substring(0, idx)}<mark>${texto.substring(idx, idx + query.length)}</mark>${texto.substring(idx + query.length)}`;
-                }
-            }
-            return `<div class="ac-item" data-val="${texto}">${highlighted}</div>`;
-        }).join('');
-        dropdown.classList.add('open');
+function acSeleccionar(campo, valor) {
+  document.getElementById(campo).value = valor;
+  acCerrarAhora(campo);
+}
+
+function acCerrar(campo, delay) {
+  setTimeout(function() { acCerrarAhora(campo); }, delay || 0);
+}
+
+function acCerrarAhora(campo) {
+  document.getElementById('ac-' + campo).classList.remove('open');
+  acActive[campo] = -1;
+}
+
+function acTecla(e, campo) {
+  var dropdown = document.getElementById('ac-' + campo);
+  var items    = dropdown.querySelectorAll('.ac-item');
+  if (!dropdown.classList.contains('open') || items.length === 0) return;
+
+  if (e.key === 'ArrowDown' || e.keyCode === 40) {
+    e.preventDefault();
+    acActive[campo] = Math.min(acActive[campo] + 1, items.length - 1);
+    acResaltar(campo, items);
+  } else if (e.key === 'ArrowUp' || e.keyCode === 38) {
+    e.preventDefault();
+    acActive[campo] = Math.max(acActive[campo] - 1, 0);
+    acResaltar(campo, items);
+  } else if (e.key === 'Enter' || e.keyCode === 13) {
+    if (acActive[campo] >= 0) {
+      e.preventDefault();
+      acSeleccionar(campo, items[acActive[campo]].getAttribute('data-val'));
     }
+  } else if (e.key === 'Escape' || e.keyCode === 27) {
+    acCerrarAhora(campo);
+  }
+}
 
-    function acSeleccionar(campo, valor) {
-        document.getElementById(campo).value = valor;
-        acCerrarAhora(campo);
+function acResaltar(campo, items) {
+  for (var i = 0; i < items.length; i++) {
+    items[i].classList.toggle('active', i === acActive[campo]);
+  }
+  if (acActive[campo] >= 0) {
+    items[acActive[campo]].scrollIntoView({ block: 'nearest' });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  VALIDACIÓN DE FECHA
+// ─────────────────────────────────────────────────────────────
+function resolverAnio(raw) {
+  if (raw === '' || raw === null || raw === undefined) return null;
+  var n = parseInt(raw, 10);
+  if (isNaN(n) || n < 0) return null;
+  if (n <= 99)  return n <= 29 ? 2000 + n : 1900 + n;
+  if (n >= 1900 && n <= 2099) return n;
+  return null;
+}
+
+function validarMes() {
+  var input = document.getElementById('mes_fab');
+  var err   = document.getElementById('mes-error');
+  var val   = input.value;
+  if (val === '') {
+    input.classList.remove('input-error', 'input-ok');
+    err.style.display = 'none';
+    return;
+  }
+  var n = parseInt(val, 10);
+  if (n < 1 || n > 12) {
+    input.classList.add('input-error');
+    input.classList.remove('input-ok');
+    err.style.display = 'block';
+  } else {
+    input.classList.remove('input-error');
+    input.classList.add('input-ok');
+    err.style.display = 'none';
+  }
+}
+
+function interpretarAnio() {
+  var input    = document.getElementById('anio_fab');
+  var hint     = document.getElementById('date-hint');
+  var hidden   = document.getElementById('anio_resuelto');
+  var raw      = input.value;
+
+  if (raw === '') {
+    input.classList.remove('input-error', 'input-ok');
+    hidden.value = '';
+    hint.textContent = 'Mes (1–12) y año abreviado (ej: 23 → 2023, 04 → 2004)';
+    return;
+  }
+
+  var resuelto = resolverAnio(raw);
+  if (resuelto) {
+    hidden.value = resuelto;
+    input.classList.remove('input-error');
+    input.classList.add('input-ok');
+    hint.textContent = '→ Año interpretado como ' + resuelto;
+  } else {
+    hidden.value = '';
+    input.classList.add('input-error');
+    input.classList.remove('input-ok');
+    hint.textContent = 'Año no válido';
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  CÁLCULOS
+// ─────────────────────────────────────────────────────────────
+function calcDias(mes, anio) {
+  if (!mes || !anio || mes < 1 || mes > 12 || anio < 1900 || anio > 2099) return null;
+  var fab  = new Date(anio, mes - 1, 1);
+  var hoy  = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  var diff = Math.round((hoy.getTime() - fab.getTime()) / 86400000);
+  return diff >= 0 ? diff : 0;
+}
+
+function calcSOH(dias, odoKm, delta, ea, k, factor, garantia) {
+  var D_tiempo = k * Math.sqrt(dias) * Math.exp((-ea / PARAMS.R) * (1 / PARAMS.T_alta - 1 / PARAMS.T_ref));
+  var D_km     = ((odoKm / garantia) * 0.3 * factor) * 100;
+  var SOH      = (100 - (delta + D_tiempo + D_km)) / 100;
+  return { D_tiempo: D_tiempo, D_km: D_km, SOH: SOH };
+}
+
+function getOdoKm() {
+  var raw = parseFloat(document.getElementById('odometro').value);
+  if (isNaN(raw)) return NaN;
+  return document.getElementById('is_miles').checked ? raw * PARAMS.MI_TO_KM : raw;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ACTUALIZAR UI
+// ─────────────────────────────────────────────────────────────
+function updateComputed() {
+  var mes  = parseInt(document.getElementById('mes_fab').value, 10)      || 0;
+  var anio = parseInt(document.getElementById('anio_resuelto').value, 10) || 0;
+  var dias = calcDias(mes, anio);
+
+  document.getElementById('dias_fab').value = (dias !== null) ? dias : '';
+
+  var bat = document.getElementById('tipo_bateria').value;
+  var veh = document.getElementById('tipo_vehiculo').value;
+  var bP  = bat ? PARAMS.bateria[bat]  : null;
+  var vP  = veh ? PARAMS.vehiculo[veh] : null;
+
+  document.getElementById('delta_form').value = bP ? bP.delta    : '';
+  document.getElementById('ea').value          = bP ? bP.ea       : '';
+  document.getElementById('k_tiempo').value    = bP ? bP.k        : '';
+  document.getElementById('factor_uso').value  = vP ? vP.factor   : '';
+  document.getElementById('garantia').value    = vP ? vP.garantia : '';
+
+  // Odómetro: badge y conversión
+  var rawOdo  = parseFloat(document.getElementById('odometro').value);
+  var isMiles = document.getElementById('is_miles').checked;
+  var badge   = document.getElementById('odo-unit-badge');
+  var conv    = document.getElementById('odo-converted');
+  badge.textContent = isMiles ? 'mi' : 'km';
+  badge.className   = 'odo-unit-badge' + (isMiles ? ' miles' : '');
+  conv.textContent  = (isMiles && !isNaN(rawOdo))
+    ? '= ' + (rawOdo * PARAMS.MI_TO_KM).toFixed(2) + ' km' : '';
+
+  var odoKm    = getOdoKm();
+  var todosOk  = bP && vP && dias !== null && dias > 0 && !isNaN(odoKm);
+
+  var sohEl    = document.getElementById('soh-pct');
+  var barEl    = document.getElementById('soh-bar');
+  var stEl     = document.getElementById('soh-status');
+  var saveWrap = document.getElementById('soh-save-wrap');
+
+  if (todosOk) {
+    var res = calcSOH(dias, odoKm, bP.delta, bP.ea, bP.k, vP.factor, vP.garantia);
+    currentResult = { dias: dias, odoKm: odoKm, bP: bP, vP: vP, res: res };
+
+    document.getElementById('d_tiempo_val').textContent = res.D_tiempo.toFixed(6);
+    document.getElementById('d_km_val').textContent     = res.D_km.toFixed(6);
+
+    var pct = Math.min(Math.max(res.SOH * 100, 0), 100);
+    sohEl.textContent = (res.SOH * 100).toFixed(2) + '%';
+    barEl.style.width = pct.toFixed(1) + '%';
+
+    if (res.SOH >= 0.8) {
+      barEl.style.background = '#0F6E56';
+      sohEl.className = 'soh-number';
+      stEl.textContent = 'Batería en buen estado';
+    } else if (res.SOH >= 0.6) {
+      barEl.style.background = '#854F0B';
+      sohEl.className = 'soh-number amber';
+      stEl.textContent = 'Batería con desgaste moderado';
+    } else {
+      barEl.style.background = '#A32D2D';
+      sohEl.className = 'soh-number red';
+      stEl.textContent = 'Batería con desgaste severo';
     }
+    saveWrap.style.display = 'block';
+  } else {
+    currentResult = null;
+    document.getElementById('d_tiempo_val').textContent = '—';
+    document.getElementById('d_km_val').textContent     = '—';
+    sohEl.textContent = '—';
+    sohEl.className   = 'soh-number';
+    barEl.style.width = '0%';
+    stEl.textContent  = 'Completa los campos para calcular';
+    saveWrap.style.display = 'none';
+  }
+}
 
-    function acCerrar(campo, delay = 0) {
-        setTimeout(() => acCerrarAhora(campo), delay);
+// ─────────────────────────────────────────────────────────────
+//  GUARDAR REGISTRO
+// ─────────────────────────────────────────────────────────────
+function guardarRegistro() {
+  var btn = document.getElementById('save-btn');
+  if (btn.disabled) return; // prevenir doble envío
+
+  var marca   = document.getElementById('marca').value.trim();
+  var modelo  = document.getElementById('modelo').value.trim();
+  var mes     = parseInt(document.getElementById('mes_fab').value, 10)       || 0;
+  var anio    = parseInt(document.getElementById('anio_resuelto').value, 10) || 0;
+  var bat     = document.getElementById('tipo_bateria').value;
+  var veh     = document.getElementById('tipo_vehiculo').value;
+  var rawOdo  = parseFloat(document.getElementById('odometro').value);
+  var isMiles = document.getElementById('is_miles').checked;
+
+  if (!marca || !modelo || !mes || !anio || !bat || !veh || isNaN(rawOdo)) {
+    mostrarToast('Por favor completa todos los campos.', true);
+    return;
+  }
+  if (!currentResult) {
+    mostrarToast('No hay resultado calculado.', true);
+    return;
+  }
+
+  var odoKm = isMiles ? rawOdo * PARAMS.MI_TO_KM : rawOdo;
+  var bP    = PARAMS.bateria[bat];
+  var vP    = PARAMS.vehiculo[veh];
+  var res   = currentResult.res;
+
+  var record = {
+    marca:    marca,    modelo:   modelo,
+    mes:      mes,      anio:     anio,      dias:     calcDias(mes, anio),
+    tipo_veh: veh,      tipo_bat: bat,
+    odo_raw:  rawOdo,   odo_unit: isMiles ? 'mi' : 'km',   odo_km: odoKm,
+    delta:    bP.delta, ea:       bP.ea,     k:        bP.k,
+    factor:   vP.factor, garantia: vP.garantia,
+    d_tiempo: res.D_tiempo, d_km: res.D_km,  soh:      res.SOH
+  };
+
+  btn.disabled    = true;
+  btn.textContent = '⏳ Guardando...';
+
+  apiPost({ action: 'save', record: record },
+    function(result) {
+      btn.disabled    = false;
+      btn.textContent = '💾 Guardar en la tabla';
+      if (result && result.success) {
+        record.id = result.id;
+        records.push(record);
+        renderTabla();
+        acActualizarDesdeRegistros();
+        limpiarFormulario();
+        mostrarToast('✔ Guardado en Google Sheets');
+      } else {
+        mostrarToast('✖ Error: ' + (result ? result.error : 'desconocido'), true);
+      }
+    },
+    function() {
+      btn.disabled    = false;
+      btn.textContent = '💾 Guardar en la tabla';
+      mostrarToast('✖ Error de conexión con Google Sheets', true);
     }
-    
-    function acCerrarAhora(campo) {
-        document.getElementById(`ac-${campo}`).classList.remove('open');
-        acActive[campo] = -1;
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+//  RENDERIZAR TABLA
+// ─────────────────────────────────────────────────────────────
+function renderTabla() {
+  var tbody = document.getElementById('records-body');
+  if (!records || records.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="18" class="empty-msg">Sin registros guardados aún.</td></tr>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < records.length; i++) {
+    var r       = records[i];
+    var pct     = (r.soh * 100).toFixed(2);
+    var cls     = r.soh >= 0.8 ? 'badge-green' : r.soh >= 0.6 ? 'badge-amber' : 'badge-red';
+    var odoDisp = (r.odo_unit === 'mi')
+      ? r.odo_raw + ' mi (' + parseFloat(r.odo_km).toFixed(0) + ' km)'
+      : parseFloat(r.odo_km).toFixed(1) + ' km';
+    var nomVeh  = NOMBRES_VEH[r.tipo_veh] || r.tipo_veh;
+    html += '<tr>' +
+      '<td>' + (i + 1) + '</td>' +
+      '<td>' + r.marca + '</td>' +
+      '<td>' + r.modelo + '</td>' +
+      '<td>' + (MESES[r.mes] || r.mes) + '</td>' +
+      '<td>' + r.anio + '</td>' +
+      '<td>' + r.dias + '</td>' +
+      '<td>' + nomVeh + '</td>' +
+      '<td>' + r.tipo_bat + '</td>' +
+      '<td>' + odoDisp + '</td>' +
+      '<td>' + r.delta + '</td>' +
+      '<td>' + r.ea + '</td>' +
+      '<td>' + r.k + '</td>' +
+      '<td>' + r.factor + '</td>' +
+      '<td>' + r.garantia + '</td>' +
+      '<td>' + parseFloat(r.d_tiempo).toFixed(6) + '</td>' +
+      '<td>' + parseFloat(r.d_km).toFixed(6) + '</td>' +
+      '<td><span class="badge ' + cls + '">' + pct + '%</span></td>' +
+      '<td><button class="del-btn" onclick="eliminarRegistro(' + i + ')" title="Eliminar">🗑</button></td>' +
+      '</tr>';
+  }
+  tbody.innerHTML = html;
+}
+
+// ─────────────────────────────────────────────────────────────
+//  ELIMINAR REGISTRO
+// ─────────────────────────────────────────────────────────────
+function eliminarRegistro(idx) {
+  if (!confirm('¿Eliminar este registro? También se borrará de Google Sheets.')) return;
+  apiPost({ action: 'delete', index: idx },
+    function(result) {
+      if (result && result.success) {
+        records.splice(idx, 1);
+        renderTabla();
+        mostrarToast('🗑 Registro eliminado');
+      } else {
+        mostrarToast('Error al eliminar', true);
+      }
+    },
+    function() {
+      mostrarToast('Error de conexión', true);
     }
+  );
+}
 
-    function acTecla(e, campo) {
-        const dropdown = document.getElementById(`ac-${campo}`);
-        const items = dropdown.querySelectorAll('.ac-item');
-        if (!dropdown.classList.contains('open') || items.length === 0) return;
+// ─────────────────────────────────────────────────────────────
+//  LIMPIAR FORMULARIO
+// ─────────────────────────────────────────────────────────────
+function limpiarFormulario() {
+  var ids = ['marca','modelo','mes_fab','anio_fab','anio_resuelto','odometro'];
+  for (var i = 0; i < ids.length; i++) {
+    document.getElementById(ids[i]).value = '';
+  }
+  document.getElementById('tipo_vehiculo').value = '';
+  document.getElementById('tipo_bateria').value  = '';
+  document.getElementById('is_miles').checked    = false;
 
-        const keyMap = { ArrowDown: 1, ArrowUp: -1 };
-        if (keyMap[e.key]) {
-            e.preventDefault();
-            acActive[campo] = Math.max(0, Math.min(acActive[campo] + keyMap[e.key], items.length - 1));
-            acResaltarItem(campo, items);
-        } else if (e.key === 'Enter') {
-            if (acActive[campo] >= 0) {
-                e.preventDefault();
-                acSeleccionar(campo, items[acActive[campo]].dataset.val);
-            }
-        } else if (e.key === 'Escape') {
-            acCerrarAhora(campo);
-        }
-    }
+  // Reset estilos de fecha
+  document.getElementById('mes_fab').classList.remove('input-error', 'input-ok');
+  document.getElementById('anio_fab').classList.remove('input-error', 'input-ok');
+  document.getElementById('mes-error').style.display = 'none';
+  document.getElementById('date-hint').textContent   = 'Mes (1–12) y año abreviado (ej: 23 → 2023, 04 → 2004)';
 
-    function acResaltarItem(campo, items) {
-        items.forEach((item, i) => item.classList.toggle('active', i === acActive[campo]));
-        if (acActive[campo] >= 0) {
-            items[acActive[campo]].scrollIntoView({ block: 'nearest' });
-        }
-    }
+  acCerrarAhora('marca');
+  acCerrarAhora('modelo');
+  currentResult = null;
+  updateComputed();
+}
 
-    // --- Validaciones y cálculos ---
-    function resolverAnio(raw) {
-        if (!raw && raw !== 0) return null;
-        const n = parseInt(raw, 10);
-        if (isNaN(n) || n < 0) return null;
-        if (n <= 99) return n <= 29 ? 2000 + n : 1900 + n;
-        if (n >= 1900 && n <= 2099) return n;
-        return null;
-    }
-    
-    function validarMes() {
-        const inp = document.getElementById('mes_fab');
-        const val = parseInt(inp.value, 10);
-        if (inp.value === '') {
-            inp.classList.remove('input-error', 'input-ok');
-            document.getElementById('mes-error').style.display = 'none';
-            return;
-        }
-        const isValid = val >= 1 && val <= 12;
-        inp.classList.toggle('input-error', !isValid);
-        inp.classList.toggle('input-ok', isValid);
-        document.getElementById('mes-error').style.display = isValid ? 'none' : 'block';
-    }
+// ─────────────────────────────────────────────────────────────
+//  EXPORTAR CSV
+// ─────────────────────────────────────────────────────────────
+function exportarCSV() {
+  if (!records || records.length === 0) {
+    mostrarToast('No hay registros para exportar.', true);
+    return;
+  }
+  var cols = ['#','Marca','Modelo','Mes','Año','Días','Tipo vehículo','Tipo batería',
+    'Odómetro ingresado','Unidad','Odómetro km','Δ Formación','Ea','k_tiempo',
+    'Factor uso','Garantía','D_tiempo','D_km','SOH'];
+  var rows = [cols.join(',')];
+  for (var i = 0; i < records.length; i++) {
+    var r = records[i];
+    rows.push([
+      i + 1, r.marca, r.modelo, r.mes, r.anio, r.dias, r.tipo_veh, r.tipo_bat,
+      r.odo_raw, r.odo_unit, parseFloat(r.odo_km).toFixed(2),
+      r.delta, r.ea, r.k, r.factor, r.garantia,
+      parseFloat(r.d_tiempo).toFixed(8),
+      parseFloat(r.d_km).toFixed(8),
+      parseFloat(r.soh).toFixed(8)
+    ].join(','));
+  }
+  var csv  = '\uFEFF' + rows.join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a    = document.createElement('a');
+  a.href   = URL.createObjectURL(blob);
+  a.download = 'registros_SOH.csv';
+  a.click();
+}
 
-    function interpretarAnio() {
-        const inp = document.getElementById('anio_fab');
-        if (inp.value === '') {
-            inp.classList.remove('input-error', 'input-ok');
-            document.getElementById('anio_resuelto').value = '';
-            document.getElementById('date-hint').textContent = 'Mes (1–12) y año abreviado (ej: 23 → 2023)';
-            return;
-        }
-        const resuelto = resolverAnio(inp.value);
-        document.getElementById('anio_resuelto').value = resuelto || '';
-        inp.classList.toggle('input-error', !resuelto);
-        inp.classList.toggle('input-ok', !!resuelto);
-        document.getElementById('date-hint').textContent = resuelto ? `→ Año interpretado como ${resuelto}` : 'Año no válido';
-    }
-    
-    function calcDias(mes, anio) {
-        if (!mes || !anio || mes < 1 || mes > 12 || anio < 1900 || anio > 2099) return null;
-        const fab = new Date(anio, mes - 1, 1);
-        const hoy = new Date();
-        hoy.setHours(0, 0, 0, 0);
-        const diff = Math.round((hoy.getTime() - fab.getTime()) / 86400000);
-        return Math.max(0, diff);
-    }
-    
-    function calcSOH(dias, odoKm, delta, ea, k, factor, garantia) {
-        const { R, T_alta, T_ref } = PARAMS;
-        const D_tiempo = k * Math.sqrt(dias) * Math.exp((-ea / R) * (1 / T_alta - 1 / T_ref));
-        const D_km = ((odoKm / garantia) * 0.3 * factor) * 100;
-        const SOH = (100 - (delta + D_tiempo + D_km)) / 100;
-        return { D_tiempo, D_km, SOH };
-    }
-    
-    function getOdoKm() {
-        const raw = parseFloat(document.getElementById('odometro').value);
-        return isNaN(raw) ? NaN : document.getElementById('is_miles').checked ? raw * PARAMS.MI_TO_KM : raw;
-    }
-
-    // --- Actualización de UI ---
-    function updateComputed() {
-        const mes = parseInt(document.getElementById('mes_fab').value, 10) || 0;
-        const anio = parseInt(document.getElementById('anio_resuelto').value, 10) || 0;
-        const dias = calcDias(mes, anio);
-        document.getElementById('dias_fab').value = (dias !== null) ? dias : '';
-
-        const bat = document.getElementById('tipo_bateria').value;
-        const veh = document.getElementById('tipo_vehiculo').value;
-        const bP = bat ? PARAMS.bateria[bat] : null;
-        const vP = veh ? PARAMS.vehiculo[veh] : null;
-
-        document.getElementById('delta_form').value = bP?.delta ?? '';
-        document.getElementById('ea').value = bP?.ea ?? '';
-        document.getElementById('k_tiempo').value = bP?.k ?? '';
-        document.getElementById('factor_uso').value = vP?.factor ?? '';
-        document.getElementById('garantia').value = vP?.garantia ?? '';
-
-        const rawOdo = parseFloat(document.getElementById('odometro').value);
-        const isMiles = document.getElementById('is_miles').checked;
-        const badge = document.getElementById('odo-unit-badge');
-        badge.textContent = isMiles ? 'mi' : 'km';
-        badge.className = `odo-unit-badge${isMiles ? ' miles' : ''}`;
-        document.getElementById('odo-converted').textContent = (isMiles && !isNaN(rawOdo)) ? `= ${(rawOdo * PARAMS.MI_TO_KM).toFixed(2)} km` : '';
-
-        const odoKm = getOdoKm();
-        const ok = bP && vP && dias !== null && dias >= 0 && !isNaN(odoKm);
-
-        const sohEl = document.getElementById('soh-pct');
-        const barEl = document.getElementById('soh-bar');
-        const stEl = document.getElementById('soh-status');
-        const saveWrap = document.getElementById('soh-save-wrap');
-
-        if (ok) {
-            const res = calcSOH(dias, odoKm, bP.delta, bP.ea, bP.k, vP.factor, vP.garantia);
-            currentResult = { dias, odoKm, res };
-            
-            document.getElementById('d_tiempo_val').textContent = res.D_tiempo.toFixed(6);
-            document.getElementById('d_km_val').textContent = res.D_km.toFixed(6);
-            
-            const pct = Math.min(Math.max(res.SOH * 100, 0), 100);
-            sohEl.textContent = `${(res.SOH * 100).toFixed(2)}%`;
-            barEl.style.width = `${pct.toFixed(1)}%`;
-
-            if (res.SOH >= 0.8) {
-                barEl.style.background = 'var(--c-primary)';
-                sohEl.className = 'soh-number';
-                stEl.textContent = 'Batería en buen estado';
-            } else if (res.SOH >= 0.6) {
-                barEl.style.background = 'var(--c-amber)';
-                sohEl.className = 'soh-number amber';
-                stEl.textContent = 'Batería con desgaste moderado';
-            } else {
-                barEl.style.background = 'var(--c-error)';
-                sohEl.className = 'soh-number red';
-                stEl.textContent = 'Batería con desgaste severo';
-            }
-            saveWrap.style.display = 'block';
-        } else {
-            currentResult = null;
-            document.getElementById('d_tiempo_val').textContent = '—';
-            document.getElementById('d_km_val').textContent = '—';
-            sohEl.textContent = '—';
-            sohEl.className = 'soh-number';
-            barEl.style.width = '0%';
-            stEl.textContent = 'Completa los campos para calcular';
-            saveWrap.style.display = 'none';
-        }
-    }
-    
-    // --- Renderizado de tabla ---
-    function renderTabla() {
-        const tbody = document.getElementById('records-body');
-        if (!records || records.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="18" class="empty-msg">Sin registros guardados aún.</td></tr>';
-            return;
-        }
-        // Optimizado: Uso de template literals para mayor claridad
-        tbody.innerHTML = records.map((r, i) => {
-            const pct = (r.soh * 100).toFixed(2);
-            const cls = r.soh >= 0.8 ? 'badge-green' : r.soh >= 0.6 ? 'badge-amber' : 'badge-red';
-            const odoDisp = (r.odo_unit === 'mi')
-                ? `${r.odo_raw} mi (${parseFloat(r.odo_km).toFixed(0)} km)`
-                : `${parseFloat(r.odo_km).toFixed(1)} km`;
-            
-            return `
-                <tr data-index="${i}">
-                    <td>${i + 1}</td>
-                    <td>${r.marca}</td>
-                    <td>${r.modelo}</td>
-                    <td>${MESES[r.mes] || r.mes}</td>
-                    <td>${r.anio}</td>
-                    <td>${r.dias}</td>
-                    <td>${NOMBRES_VEH[r.tipo_veh] || r.tipo_veh}</td>
-                    <td>${r.tipo_bat}</td>
-                    <td>${odoDisp}</td>
-                    <td>${r.delta}</td>
-                    <td>${r.ea}</td>
-                    <td>${r.k}</td>
-                    <td>${r.factor}</td>
-                    <td>${r.garantia}</td>
-                    <td>${parseFloat(r.d_tiempo).toFixed(6)}</td>
-                    <td>${parseFloat(r.d_km).toFixed(6)}</td>
-                    <td><span class="badge ${cls}">${pct}%</span></td>
-                    <td><button class="del-btn" data-index="${i}" title="Eliminar" aria-label="Eliminar registro">🗑️</button></td>
-                </tr>
-            `;
-        }).join('');
-    }
-    
-    // --- Acciones del usuario ---
-    async function guardarRegistro() {
-        const marca = document.getElementById('marca').value.trim();
-        const modelo = document.getElementById('modelo').value.trim();
-        const mes = parseInt(document.getElementById('mes_fab').value, 10);
-        const anio = parseInt(document.getElementById('anio_resuelto').value, 10);
-        const bat = document.getElementById('tipo_bateria').value;
-        const veh = document.getElementById('tipo_vehiculo').value;
-        const rawOdo = parseFloat(document.getElementById('odometro').value);
-
-        if (!marca || !modelo || !mes || !anio || !bat || !veh || isNaN(rawOdo) || !currentResult) {
-            return mostrarToast('Completa todos los campos para guardar.', true);
-        }
-
-        const btn = document.getElementById('save-btn');
-        btn.disabled = true;
-        btn.textContent = 'Guardando...';
-
-        const record = {
-            marca, modelo, mes, anio, tipo_veh: veh, tipo_bat: bat,
-            dias: currentResult.dias,
-            odo_raw: rawOdo,
-            odo_unit: document.getElementById('is_miles').checked ? 'mi' : 'km',
-            odo_km: currentResult.odoKm,
-            ...PARAMS.bateria[bat],
-            ...PARAMS.vehiculo[veh],
-            d_tiempo: currentResult.res.D_tiempo,
-            d_km: currentResult.res.D_km,
-            soh: currentResult.res.SOH
-        };
-
-        try {
-            const result = await apiCall('save', record);
-            if (result && result.success) {
-                records.push(result.record);
-                renderTabla();
-                acActualizarDesdeRegistros();
-                mostrarToast('Registro guardado con éxito.');
-                limpiarFormulario();
-            } else {
-                throw new Error(result.error || 'Error desconocido al guardar');
-            }
-        } catch (error) {
-            mostrarToast(`Error al guardar: ${error}`, true);
-        } finally {
-            btn.disabled = false;
-            btn.textContent = '💾 Guardar en la tabla';
-        }
-    }
-    
-    async function eliminarRegistro(idx) {
-        if (!confirm('¿Eliminar este registro? También se borrará de Google Sheets.')) return;
-        
-        try {
-            const result = await apiCall('delete', { index: idx });
-            if (result && result.success) {
-                records.splice(idx, 1);
-                renderTabla();
-                acActualizarDesdeRegistros();
-                mostrarToast('Registro eliminado.');
-            } else {
-                 throw new Error(result.error || 'Error desconocido al eliminar');
-            }
-        } catch (error) {
-            mostrarToast(`Error al eliminar: ${error}`, true);
-        }
-    }
-
-    function limpiarFormulario() {
-        ['marca', 'modelo', 'mes_fab', 'anio_fab', 'odometro'].forEach(id => document.getElementById(id).value = '');
-        document.getElementById('tipo_vehiculo').value = '';
-        document.getElementById('tipo_bateria').value = '';
-        document.getElementById('is_miles').checked = false;
-        acCerrarAhora('marca');
-        acCerrarAhora('modelo');
-        
-        validarMes();
-        interpretarAnio();
-        updateComputed();
-    }
-    
-    function exportarCSV() {
-        if (records.length === 0) {
-            return mostrarToast('No hay registros para exportar.', true);
-        }
-        const cols = ['#','Marca','Modelo','Mes','Anio','Dias','Tipo vehiculo','Tipo bateria', 'Odometro ingresado','Unidad','Odometro km','Delta Formacion','Ea','k_tiempo', 'Factor uso','Garantia','D_tiempo','D_km','SOH'];
-        const rows = [cols.join(',')];
-        records.forEach((r, i) => {
-            const row = [
-                i + 1, r.marca, r.modelo, r.mes, r.anio, r.dias, r.tipo_veh, r.tipo_bat,
-                r.odo_raw, r.odo_unit, parseFloat(r.odo_km).toFixed(2),
-                r.delta, r.ea, r.k, r.factor, r.garantia,
-                parseFloat(r.d_tiempo).toFixed(8),
-                parseFloat(r.d_km).toFixed(8),
-                parseFloat(r.soh).toFixed(8)
-            ];
-            rows.push(row.join(','));
-        });
-        
-        const csv = '\uFEFF' + rows.join('\n');
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'registros_SOH.csv';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        URL.revokeObjectURL(url);
-    }
-    
-    // --- INICIALIZACIÓN ---
-    document.addEventListener('DOMContentLoaded', async () => {
-        // --- Asignación de Listeners centralizada ---
-        const form = document.querySelector('.container');
-        form.addEventListener('input', (e) => {
-            if (e.target.matches('#mes_fab, #anio_fab, #tipo_vehiculo, #tipo_bateria, #odometro, #is_miles')) {
-                updateComputed();
-            }
-            if(e.target.id === 'mes_fab') validarMes();
-            if(e.target.id === 'anio_fab') interpretarAnio();
-        });
-
-        ['marca', 'modelo'].forEach(campo => {
-            const input = document.getElementById(campo);
-            input.addEventListener('input', () => { input.value = input.value.toUpperCase(); acFiltrar(campo); });
-            input.addEventListener('keydown', (e) => acTecla(e, campo));
-            input.addEventListener('focus', () => acFiltrar(campo));
-            input.addEventListener('blur', () => acCerrar(campo, 300));
-            document.getElementById(`ac-${campo}`).addEventListener('mousedown', (e) => {
-                if (e.target.classList.contains('ac-item')) {
-                    acSeleccionar(campo, e.target.dataset.val);
-                }
-            });
-        });
-        
-        document.getElementById('save-btn').addEventListener('click', guardarRegistro);
-        document.getElementById('clear-btn').addEventListener('click', limpiarFormulario);
-        document.getElementById('export-btn').addEventListener('click', exportarCSV);
-        
-        document.getElementById('records-body').addEventListener('click', (e) => {
-           if(e.target.closest('.del-btn')){
-               const index = parseInt(e.target.closest('.del-btn').dataset.index, 10);
-               if(!isNaN(index)) eliminarRegistro(index);
-           } 
-        });
-
-        // --- Carga inicial de datos ---
-        if (!GAS_API_URL || GAS_API_URL.includes('https://script.google.com/macros/s/AKfycbxhovb8qupafcnTKPss3jhwjngG15kKEn0C_mousYzVuvGXqroyL1Xu7522M2Il_ir8iA/exec')) {
-            document.getElementById('loading-msg').textContent = 'https://script.google.com/macros/s/AKfycbxhovb8qupafcnTKPss3jhwjngG15kKEn0C_mousYzVuvGXqroyL1Xu7522M2Il_ir8iA/exec';
-            return;
-        }
-
-        try {
-            const result = await apiCall('load');
-            if (result && result.success) {
-                records = result.records || [];
-                renderTabla();
-                acActualizarDesdeRegistros();
-            } else {
-                 document.getElementById('records-body').innerHTML = '<tr><td colspan="18" class="empty-msg">Sin registros o error al cargar.</td></tr>';
-            }
-        } catch (error) {
-            document.getElementById('loading-msg').textContent = `⚠️ Error de conexión: ${error}. Revisa la URL y tu conexión.`;
-        }
-        
-        updateComputed(); // Inicializar UI
-    });
-    </script>
+// ─────────────────────────────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────────────────────────────
+function mostrarToast(msg, isError) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = 'toast' + (isError ? ' error' : '');
+  t.classList.add('show');
+  setTimeout(function() { t.classList.remove('show'); }, 3000);
+}
+</script>
 </body>
 </html>
