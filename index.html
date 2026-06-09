@@ -6,31 +6,34 @@
     <title>Calculadora SOH con Firebase</title>
     <!-- Estilos CSS -->
     <style>
-      :root { --c-primary: #0F6E56; --c-primary-dark: #085041; --c-error: #A32D2D; --c-amber: #854F0B; --c-bg: #f4f7f5; --c-border: #c8d4d0; }
+      :root { --c-primary: #0F6E56; --c-error: #A32D2D; --c-amber: #854F0B; --c-border: #c8d4d0; }
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html { scroll-behavior: smooth; }
-      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--c-bg); color: #222; padding: 1.5rem 1rem; }
-      .container { width: 100%; max-width: 960px; margin: 0 auto; }
-      .page-header { background: var(--c-primary); color: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
-      .card { background: #fff; border: 1px solid var(--c-border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f7f5; color: #222; padding: 1rem; }
+      .container { max-width: 960px; margin: 0 auto; }
+      .page-header { background: var(--c-primary); color: #fff; border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
+      .card { background: #fff; border: 1px solid var(--c-border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1rem; }
       .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--c-primary); margin-bottom: 1rem; }
       .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
       .form-group { display: flex; flex-direction: column; gap: 6px; }
-      .form-group label { font-size: 0.7rem; font-weight: 600; color: #555; text-transform: uppercase; }
+      .form-group label { font-size: 0.7rem; font-weight: 600; color: #555; }
       .form-group input, .form-group select { border: 1px solid var(--c-border); border-radius: 6px; padding: 9px 10px; font-size: 0.9rem; width: 100%; }
       .form-group input:disabled, .form-group select:disabled { background: #f0f0f0; color: #777; cursor: not-allowed; }
-      .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; }
+      .btn-row { display: flex; gap: 10px; margin-bottom: 1rem; }
       .btn-secondary, .btn-edit, .btn-export, #clear-search-btn { padding: 9px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: 1px solid var(--c-border); background: #fff; color: #555; }
       .table-wrap { overflow-x: auto; }
       table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
       th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
       th { background: var(--c-primary); color: #fff; }
-      .badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-weight: 700; cursor: pointer; }
-      .badge-green { background: #EAF3DE; color: #27500A; } .badge-amber { background: #FAEEDA; color: #854F0B; } .badge-red { background: #FCEBEB; color: #791F1F; }
-      .pagination-wrap { display: flex; justify-content: center; align-items: center; padding: 1rem 0 0.5rem; }
-      .pagination-btn { padding: 6px 12px; margin: 0 4px; border: 1px solid var(--c-border); background: #fff; color: var(--c-primary); border-radius: 6px; }
+      .badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-weight: 700; cursor: pointer; transition: transform 0.15s; }
+      .badge:hover { transform: scale(1.05); }
+      .badge-green { background: #EAF3DE; color: #27500A; } .badge-amber { background: #FAEEDA; color: var(--c-amber); } .badge-red { background: #FCEBEB; color: #791F1F; }
+      .pagination-wrap { display: flex; justify-content: center; align-items: center; padding-top: 1rem; }
+      .pagination-btn { padding: 6px 12px; margin: 0 4px; border: 1px solid var(--c-border); background: #fff; color: var(--c-primary); border-radius: 6px; cursor: pointer; }
       .pagination-btn.active { background: var(--c-primary); color: #fff; }
       .pagination-btn:disabled { background: #f5f5f5; color: #aaa; cursor: not-allowed; }
+      .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #333; color: #fff; padding: 12px 20px; border-radius: 8px; z-index: 1000; opacity: 0; transition: all 0.3s; }
+      .toast.show { opacity: 1; }
     </style>
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
@@ -44,22 +47,23 @@
     <div class="card">
         <div class="section-title">🚗 Datos del vehículo</div>
         <div class="form-grid">
-            <div class="form-group"><label for="marca">Marca</label><div class="ac-wrap"><input type="text" id="marca" autocomplete="off" /></div></div>
-            <div class="form-group"><label for="modelo">Modelo</label><div class="ac-wrap"><input type="text" id="modelo" autocomplete="off" /></div></div>
+            <div class="form-group"><label for="marca">Marca</label><input type="text" id="marca" autocomplete="off" style="text-transform:uppercase;"/></div>
+            <div class="form-group"><label for="modelo">Modelo</label><input type="text" id="modelo" autocomplete="off" style="text-transform:uppercase;"/></div>
             <div class="form-group"><label>Fecha fabricación</label><div class="date-row"><input type="number" id="mes_fab" placeholder="Mes" /><input type="number" id="anio_fab" placeholder="Año" /></div><input type="hidden" id="anio_resuelto" /></div>
+            <div class="form-group" style="display: none;"><label for="dias_fab">Días</label><input type="text" id="dias_fab" readonly /></div>
             <div class="form-group"><label for="tipo_vehiculo">Tipo vehículo</label><select id="tipo_vehiculo"><option value="">Seleccionar</option><option value="Electrico">Eléctrico</option><option value="Hibrido">Híbrido</option><option value="Hibrido Electrico">Híbrido Eléctrico</option><option value="PHEV">PHEV</option></select></div>
             <div class="form-group"><label for="tipo_bateria">Tipo batería</label><select id="tipo_bateria"><option value="">Seleccionar</option><option value="LFP">LFP</option><option value="NMC">NMC</option><option value="NCA">NCA</option><option value="NiMH">NiMH</option></select></div>
-            <div class="form-group"><label for="odometro">Odómetro</label><div class="odo-input-row"><input type="number" id="odometro" min="0" step="0.01" /></div><label><input type="checkbox" id="is_miles" /><span> en millas</span></label></div>
+            <div class="form-group"><label for="odometro">Odómetro</label><input type="number" id="odometro" min="0" step="0.01" /><label><input type="checkbox" id="is_miles" /><span> en millas</span></label></div>
         </div>
     </div>
     
-    <div class="card"><div class="section-title">✅ SOH</div><div id="soh-pct">—</div><div id="soh-save-wrap"><button id="save-btn">💾 Guardar</button></div></div>
+    <div class="card"><div class="section-title">✅ SOH</div><div id="soh-pct" style="font-size:2.5rem; font-weight:bold; color:var(--c-primary); margin-bottom:1rem;">—</div><div id="soh-save-wrap" style="display:none;"><button id="save-btn" class="btn-secondary">💾 Guardar</button></div></div>
     
     <div class="btn-row"><button id="clear-btn" class="btn-secondary">🧹 Limpiar</button><button id="edit-btn" class="btn-edit" style="display: none;">✏️ Editar</button></div>
     
     <div class="card">
-        <div class="table-hdr"><div class="section-title">📋 Registros</div><button id="export-btn" class="btn-export">⬇ CSV</button></div>
-        <div style="display:flex; gap:8px; margin-bottom:1rem;"><input type="text" id="busq-marca" placeholder="🔍 Marca" /><input type="text" id="busq-modelo" placeholder="🔍 Modelo" /><input type="number" id="busq-anio" placeholder="🔍 Año" /><button id="clear-search-btn">✕</button></div>
+        <div class="table-hdr" style="display:flex; justify-content:space-between; align-items:center;"><div class="section-title" style="margin:0;">📋 Registros</div><button id="export-btn" class="btn-export">⬇ CSV</button></div>
+        <div style="display:flex; gap:8px; margin-bottom:1rem;"><input type="text" id="busq-marca" placeholder="🔍 Marca" style="flex:1;" /><input type="text" id="busq-modelo" placeholder="🔍 Modelo" style="flex:1;" /><input type="number" id="busq-anio" placeholder="🔍 Año" style="flex:1;" /><button id="clear-search-btn">✕</button></div>
         <div class="table-wrap"><table><thead><tr><th>#</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Tipo</th><th>SOH</th><th></th></tr></thead><tbody id="records-body"></tbody></table></div>
         <div class="pagination-wrap" id="pagination-controls"></div>
     </div>
@@ -80,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
         appId: "__APP_ID__"
     };
 
-    try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error("Error Firebase:", e); return; }
+    try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error("Error Firebase:", e); document.body.innerHTML = "Error de configuración de Firebase. Revise la consola."; return; }
     
     const db = firebase.database();
     const recordsRef = db.ref('registros');
@@ -93,23 +97,20 @@ document.addEventListener('DOMContentLoaded', () => {
     let viewedRecordKey = null;
 
     let autocompleteData = { marcas: [], makeModelMap: {} };
-    let acActive = { marca: -1, modelo: -1 };
 
     const formInputs = ['marca', 'modelo', 'mes_fab', 'anio_fab', 'tipo_vehiculo', 'tipo_bateria', 'odometro', 'is_miles'];
     const PARAMS = { bateria: { LFP: { delta: 1.75, ea: 37300, k: 0.0145 }, NMC: { delta: 0.85, ea: 52500, k: 0.0135 }, NCA: { delta: 1.15, ea: 50000, k: 0.0105 }, NiMH: { delta: 0.50, ea: 42500, k: 0.0180 } }, vehiculo: { Electrico: { factor: 1.00, garantia: 161000 }, Hibrido: { factor: 0.40, garantia: 161000 }, 'Hibrido Electrico': { factor: 0.68, garantia: 161000 }, PHEV: { factor: 0.75, garantia: 128700 } }, R: 8.314, MI_TO_KM: 1.60934 };
     const NOMBRES_VEH = { Electrico: 'Eléctrico', Hibrido: 'Híbrido', 'Hibrido Electrico': 'Híbrido Eléctrico', PHEV: 'PHEV' };
     
-    // --- ASIGNACIÓN DE EVENTOS ---
+    // ASIGNACIÓN DE EVENTOS
     formInputs.forEach(id => document.getElementById(id).addEventListener('input', updateComputed));
     ['marca', 'modelo'].forEach(campo => {
         const input = document.getElementById(campo);
-        input.addEventListener('input', () => { input.value = input.value.toUpperCase(); acFiltrar(campo); });
-        input.addEventListener('blur', () => acCerrar(campo, 200));
+        input.addEventListener('input', () => acFiltrar(campo));
+        input.addEventListener('blur', () => setTimeout(() => document.getElementById(`ac-${campo}`)?.remove(), 200));
         input.addEventListener('focus', () => acFiltrar(campo));
-        input.addEventListener('keydown', (e) => acTecla(e, campo));
     });
     document.getElementById('marca').addEventListener('change', () => document.getElementById('modelo').value = '');
-    
     document.getElementById('save-btn').addEventListener('click', guardarRegistro);
     document.getElementById('clear-btn').addEventListener('click', limpiarFormulario);
     document.getElementById('edit-btn').addEventListener('click', () => toggleFormLock(false));
@@ -119,16 +120,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const sohBadge = e.target.closest('.badge');
         if (sohBadge) loadRecordIntoForm(sohBadge.dataset.key);
     });
-    // ... otros listeners ...
+    ['busq-marca', 'busq-modelo', 'busq-anio'].forEach(id => document.getElementById(id).addEventListener('input', () => { currentPage = 1; renderTabla(); }));
+    document.getElementById('clear-search-btn').addEventListener('click', limpiarBusqueda);
+    document.getElementById('pagination-controls').addEventListener('click', (e) => {
+        if(e.target.matches('.pagination-btn') && !e.target.disabled) { currentPage = Number(e.target.dataset.page); renderTabla(); }
+    });
 
-    // --- CARGA INICIAL ---
+    // CARGA INICIAL
     recordsRef.on('value', (snapshot) => {
         allRecords = snapshot.val() || {};
         buildAutocompleteData();
         renderTabla();
     });
-    
-    // --- LÓGICA DE AUTOCOMPLETADO DEPENDIENTE ---
+
+    // LÓGICA DE AUTOCOMPLETADO DEPENDIENTE
     function buildAutocompleteData() {
         const makeModelMap = {};
         for (const key in allRecords) {
@@ -144,23 +149,109 @@ document.addEventListener('DOMContentLoaded', () => {
         for (const marca in makeModelMap) makeModelMap[marca] = [...makeModelMap[marca]].sort();
         autocompleteData.makeModelMap = makeModelMap;
     }
-
     function acFiltrar(campo) {
+        const input = document.getElementById(campo);
+        document.getElementById(`ac-${campo}`)?.remove();
+        const query = input.value.trim().toUpperCase();
         let lista = (campo === 'marca') ? autocompleteData.marcas : (autocompleteData.makeModelMap[document.getElementById('marca').value.toUpperCase()] || []);
-        // ... resto de la lógica de filtrado ...
+        if (!query) return;
+        const filtrado = lista.filter(item => item.includes(query)).slice(0, 5);
+        if (filtrado.length === 0) return;
+        const dropdown = document.createElement('div');
+        dropdown.id = `ac-${campo}`;
+        dropdown.className = 'ac-dropdown';
+        filtrado.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'ac-item';
+            div.textContent = item;
+            div.onmousedown = () => { input.value = item; dropdown.remove(); if (campo === 'marca') document.getElementById('modelo').value = ''; };
+            dropdown.appendChild(div);
+        });
+        input.parentElement.appendChild(dropdown);
     }
-    // ... otras funciones de autocompletado ...
+    
+    // LÓGICA DE FIREBASE (GUARDAR/ACTUALIZAR, ELIMINAR)
+    function guardarRegistro() {
+        if (document.getElementById('save-btn').disabled) return;
+        const recordData = getFormData();
+        if (!recordData) return;
+        const btn = document.getElementById('save-btn');
+        btn.disabled = true; btn.textContent = '...';
+        const promise = viewedRecordKey ? recordsRef.child(viewedRecordKey).update(recordData) : recordsRef.push(recordData);
+        promise.then(() => { mostrarToast('✔ Registro ' + (viewedRecordKey ? 'actualizado' : 'guardado')); limpiarFormulario(); }).catch(err => mostrarToast('✖ Error: ' + err.message)).finally(() => btn.disabled = false);
+    }
+    function eliminarRegistro(key) { if (!confirm('¿Eliminar registro?')) return; recordsRef.child(key).remove().then(() => mostrarToast('🗑 Eliminado')).catch(err => mostrarToast('Error: ' + err.message)); }
 
-    // --- LÓGICA DE LA APP ---
-    function guardarRegistro() { /* ... */ }
-    function eliminarRegistro(key) { /* ... */ }
-    function renderTabla() { /* ... */ }
-    function renderPagination(totalRecords) { /* ... */ }
-    function loadRecordIntoForm(key) { /* ... */ }
-    function toggleFormLock(lock) { /* ... */ }
-    function limpiarFormulario() { /* ... */ }
-    function updateComputed() { /* ... */ }
-    function exportarCSV() { /* ... */ }
+    // RENDERIZADO TABLA Y PAGINACIÓN
+    function renderTabla() {
+        const tbody = document.getElementById('records-body');
+        const busqMarca = document.getElementById('busq-marca').value.trim().toUpperCase();
+        const busqModelo = document.getElementById('busq-modelo').value.trim().toUpperCase();
+        const busqAnio = document.getElementById('busq-anio').value.trim();
+        const filtrados = Object.entries(allRecords).filter(([, r]) => (!busqMarca || r.marca.toUpperCase().includes(busqMarca)) && (!busqModelo || r.modelo.toUpperCase().includes(busqModelo)) && (!busqAnio || String(r.anio).includes(busqAnio))).reverse();
+        const totalRecords = filtrados.length;
+        const recordsToShow = filtrados.slice((currentPage - 1) * recordsPerPage, currentPage * recordsPerPage);
+        if (totalRecords === 0) { tbody.innerHTML = `<tr><td colspan="7" class="empty-msg">${Object.keys(allRecords).length === 0 ? 'Sin registros.' : 'Sin resultados.'}</td></tr>`; } 
+        else { tbody.innerHTML = recordsToShow.map(([key, r], i) => { const pct = (r.soh * 100).toFixed(2); return `<tr><td>${(currentPage - 1) * recordsPerPage + i + 1}</td><td>${r.marca}</td><td>${r.modelo}</td><td>${r.anio}</td><td>${NOMBRES_VEH[r.tipo_veh] || r.tipo_veh}</td><td><span class="badge badge-${pct < 60 ? 'red' : pct < 80 ? 'amber' : 'green'}" data-key="${key}">${pct}%</span></td><td><button class="del-btn" data-key="${key}">🗑️</button></td></tr>`; }).join(''); }
+        renderPagination(totalRecords);
+    }
+    function renderPagination(totalRecords) {
+        const paginationControls = document.getElementById('pagination-controls');
+        const pageCount = Math.ceil(totalRecords / recordsPerPage);
+        paginationControls.innerHTML = '';
+        if (pageCount <= 1) return;
+        const createBtn = (text, page) => { const btn = document.createElement('button'); btn.className = 'pagination-btn'; btn.textContent = text; btn.dataset.page = page; if (page === currentPage) btn.classList.add('active'); if (page < 1 || page > pageCount) btn.disabled = true; return btn; };
+        paginationControls.appendChild(createBtn('«', currentPage - 1));
+        for (let i = 1; i <= pageCount; i++) paginationControls.appendChild(createBtn(i, i));
+        paginationControls.appendChild(createBtn('»', currentPage + 1));
+    }
+    
+    // MODO VISTA/EDICIÓN
+    function loadRecordIntoForm(key) {
+        const record = allRecords[key];
+        if (!record) return;
+        viewedRecordKey = key;
+        formInputs.forEach(id => document.getElementById(id).value = record[id] || (id === 'is_miles' ? false : ''));
+        document.getElementById('is_miles').checked = (record.odo_unit === 'mi');
+        document.getElementById('odometro').value = record.odo_raw;
+        updateComputed();
+        toggleFormLock(true);
+        window.scrollTo({ top: 0 });
+    }
+    function toggleFormLock(lock) {
+        isViewMode = lock;
+        formInputs.forEach(id => document.getElementById(id).disabled = lock);
+        document.getElementById('edit-btn').style.display = lock ? 'inline-block' : 'none';
+        const saveBtnText = lock ? '💾 Guardar' : (viewedRecordKey ? '💾 Actualizar' : '💾 Guardar');
+        document.getElementById('save-btn').textContent = saveBtnText;
+    }
+
+    // FUNCIONES DE APOYO
+    function limpiarFormulario() {
+        formInputs.forEach(id => document.getElementById(id).value = '');
+        document.getElementById('is_miles').checked = false;
+        viewedRecordKey = null;
+        toggleFormLock(false);
+        updateComputed();
+    }
+    function limpiarBusqueda() { ['busq-marca', 'busq-modelo', 'busq-anio'].forEach(id => document.getElementById(id).value = ''); currentPage = 1; renderTabla(); }
+    function getFormData() {
+        const data = {};
+        formInputs.forEach(id => data[id] = document.getElementById(id)[id === 'is_miles' ? 'checked' : 'value']);
+        if (!data.marca || !data.modelo || !data.mes_fab || !data.anio_fab || !data.tipo_vehiculo || !data.tipo_bateria || !data.odometro) { mostrarToast('Completa todos los campos'); return null; }
+        return { ...data, ...currentResult }; // Simplificado
+    }
+    function updateComputed() {
+        const data = getFormData(); // Reutiliza la obtención de datos
+        if (!data) return document.getElementById('soh-save-wrap').style.display = 'none';
+        const dias = calcDias(data.mes_fab, resolverAnio(data.anio_fab));
+        // ... Lógica de cálculo ...
+        document.getElementById('soh-save-wrap').style.display = 'block';
+    }
+    function calcDias(m,a){ /*...*/ }
+    function resolverAnio(r){ /*...*/ }
+    function mostrarToast(msg){ /*...*/ }
+    function exportarCSV(){ /*...*/ }
 });
 </script>
 </body>
