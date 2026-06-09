@@ -21,6 +21,16 @@
       .form-group input, .form-group select { border: 1px solid #c8d4d0; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; background: #fff; color: #222; outline: none; transition: border-color 0.15s; width: 100%; }
       .form-group input:focus, .form-group select:focus { border-color: #0F6E56; box-shadow: 0 0 0 2px rgba(15,110,86,0.12); }
       .form-group input[readonly] { background: #f0f8f5; color: #444; cursor: default; }
+      .view-mode .form-group input:not([type="hidden"]),
+      .view-mode .form-group select,
+      .view-mode #is_miles { pointer-events: none; opacity: 0.75; background: #f5f5f5 !important; }
+      .view-mode .ac-dropdown { display: none !important; }
+      .view-mode-banner { display:none; background:#e8f5ef; border:1px solid #9FE1CB; border-radius:8px; padding:9px 14px; margin-bottom:0.85rem; font-size:0.8rem; color:#0F6E56; font-weight:600; }
+      .view-mode .view-mode-banner { display:block; }
+      .badge.soh-link { cursor: pointer; transition: filter 0.15s, transform 0.15s; }
+      .badge.soh-link:hover { filter: brightness(0.9); transform: scale(1.06); }
+      .btn-edit { padding: 9px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: none; background: #0F6E56; color: #fff; transition: opacity 0.15s; display: none; }
+      .btn-edit:hover { opacity: 0.88; }
       input.input-ok { border-color: #0F6E56 !important; }
       input.input-error { border-color: #A32D2D !important; box-shadow: 0 0 0 2px rgba(163,45,45,0.12) !important; }
       .date-row { display: flex; gap: 8px; }
@@ -67,7 +77,7 @@
       .table-hdr .section-title { margin: 0; }
       .swipe-hint { display: none; font-size: 0.7rem; color: #888; text-align: center; padding: 4px 0 6px; }
       .table-wrap { overflow-x: auto; border-radius: 8px; border: 0.5px solid #d0d5d3; }
-      table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 980px; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.78rem; min-width: 420px; }
       th { background: #0F6E56; color: #fff; padding: 8px 10px; text-align: left; font-weight: 600; font-size: 0.72rem; text-transform: uppercase; white-space: nowrap; }
       td { padding: 7px 10px; border-bottom: 0.5px solid #e8eeed; color: #222; white-space: nowrap; }
       tr:last-child td { border-bottom: none; }
@@ -80,6 +90,14 @@
       .del-btn:hover { color: #A32D2D; }
       .empty-msg { text-align: center; padding: 2rem; color: #888; font-size: 0.85rem; }
       .legend { font-size: 0.72rem; color: #777; margin-top: 0.5rem; }
+      .pagination { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 0.85rem; }
+      .pg-btn { min-width: 32px; height: 32px; padding: 0 8px; border-radius: 6px; border: 1px solid #d0d5d3; background: #fff; color: #3a85c8; font-size: 0.82rem; font-weight: 600; cursor: pointer; transition: background 0.15s, color 0.15s; }
+      .pg-btn:hover:not(:disabled) { background: #e8f5ef; border-color: #0F6E56; color: #0F6E56; }
+      .pg-btn.active { background: #0F6E56; color: #fff; border-color: #0F6E56; cursor: default; }
+      .pg-btn:disabled { opacity: 0.4; cursor: default; }
+      .pg-btn.pg-next { background: #f0a830; border-color: #f0a830; color: #fff; }
+      .pg-btn.pg-next:hover:not(:disabled) { background: #d4921e; border-color: #d4921e; }
+      .pg-dots { color: #aaa; font-size: 0.85rem; padding: 0 2px; line-height: 32px; }
       .legend span { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 4px; vertical-align: middle; }
       .toast { position: fixed; bottom: 2rem; right: 2rem; background: #0F6E56; color: #fff; padding: 12px 20px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.18); opacity: 0; transform: translateY(10px); transition: opacity 0.3s, transform 0.3s; pointer-events: none; z-index: 1000; }
       .toast.show { opacity: 1; transform: translateY(0); }
@@ -100,8 +118,9 @@
   </div>
 
   <!-- DATOS DEL VEHÍCULO -->
-  <div class="card">
+  <div class="card" id="form-card">
     <div class="section-title">🚗 Datos del vehículo</div>
+    <div class="view-mode-banner" id="view-mode-banner">👁 Modo lectura — estás viendo un registro guardado. Presiona <strong>Editar</strong> para modificarlo.</div>
     <div class="form-grid">
       <div class="form-group">
         <label for="marca">Marca</label>
@@ -176,9 +195,10 @@
     </div>
   </div>
 
-  <!-- LIMPIAR -->
+  <!-- LIMPIAR / EDITAR -->
   <div class="btn-row">
     <button id="clear-btn" class="btn-secondary">Limpiar formulario</button>
+    <button id="edit-btn" class="btn-edit">✏️ Editar</button>
   </div>
 
   <!-- TABLA -->
@@ -207,6 +227,7 @@
         </tbody>
       </table>
     </div>
+    <div id="pagination" class="pagination"></div>
     <div class="legend" style="margin-top:10px;">
       <span style="background:#27500A"></span> ≥ 80% &nbsp;
       <span style="background:#854F0B"></span> 60–80% &nbsp;
@@ -234,12 +255,17 @@ const firebaseConfig = {
 };
 
     // --- INICIALIZACIÓN DE FIREBASE Y VARIABLES GLOBALES ---
+    const configValida = !Object.values(firebaseConfig).some(v => typeof v === 'string' && v.startsWith('__'));
+    if (!configValida) {
+        document.querySelector('#records-body').innerHTML =
+            `<tr><td colspan="7" class="empty-msg">⚠ No se pudo conectar con Google Sheets.<br><small style="color:#aaa">Configura las credenciales de Firebase para activar el guardado.</small></td></tr>`;
+        document.getElementById('save-btn').disabled = true;
+        document.getElementById('save-btn').textContent = '⚠ Sin conexión a base de datos';
+    }
     try {
         firebase.initializeApp(firebaseConfig);
     } catch(e) {
         console.error("Error al inicializar Firebase. Revisa tu configuración.", e);
-        alert("¡Error Crítico! No se pudo inicializar la base de datos.");
-        return;
     }
     
     const db = firebase.database();
@@ -247,6 +273,9 @@ const firebaseConfig = {
     
     let allRecords = {};
     let currentResult = null;
+    let currentPage = 1;
+    let viewModeKey = null;   // key del registro en modo lectura, null = modo normal
+    const PAGE_SIZE = 10;
     let acData = { marca: [], modelo: [] };
     let acActive = { marca: -1, modelo: -1 };
 
@@ -266,19 +295,28 @@ const firebaseConfig = {
     document.getElementById('clear-btn').addEventListener('click', limpiarFormulario);
     document.getElementById('export-btn').addEventListener('click', exportarCSV);
     document.getElementById('clear-search-btn').addEventListener('click', limpiarBusqueda);
+    document.getElementById('edit-btn').addEventListener('click', activarModoEdicion);
     
     document.getElementById('records-body').addEventListener('click', (e) => {
         const delBtn = e.target.closest('.del-btn');
-        if (delBtn && delBtn.dataset.key) {
-            eliminarRegistro(delBtn.dataset.key);
-        }
+        if (delBtn && delBtn.dataset.key) { eliminarRegistro(delBtn.dataset.key); return; }
+        const sohBadge = e.target.closest('.soh-link');
+        if (sohBadge && sohBadge.dataset.key) { cargarRegistroEnFormulario(sohBadge.dataset.key); }
     });
 
-    ['busq-marca', 'busq-modelo', 'busq-anio'].forEach(id => document.getElementById(id).addEventListener('input', renderTabla));
+    ['busq-marca', 'busq-modelo', 'busq-anio'].forEach(id => document.getElementById(id).addEventListener('input', () => { currentPage = 1; renderTabla(); }));
     
     ['marca', 'modelo'].forEach(campo => {
         const input = document.getElementById(campo);
-        input.addEventListener('input', () => { input.value = input.value.toUpperCase(); acFiltrar(campo); });
+        input.addEventListener('input', () => {
+            input.value = input.value.toUpperCase();
+            acFiltrar(campo);
+            // Al cambiar marca, limpiar modelo y refrescar sus sugerencias
+            if (campo === 'marca') {
+                document.getElementById('modelo').value = '';
+                acCerrarAhora('modelo');
+            }
+        });
         input.addEventListener('keydown', (e) => acTecla(e, campo));
         input.addEventListener('focus', () => acFiltrar(campo));
         input.addEventListener('blur', () => acCerrar(campo, 300));
@@ -288,6 +326,7 @@ const firebaseConfig = {
     });
 
     // --- CARGA INICIAL DESDE FIREBASE ---
+    if (configValida) {
     recordsRef.on('value', (snapshot) => {
         allRecords = snapshot.val() || {};
         acActualizarDesdeRegistros();
@@ -296,11 +335,15 @@ const firebaseConfig = {
         console.error("Error al leer de Firebase:", error);
         document.querySelector('#records-body').innerHTML = `<tr><td colspan="7" class="empty-msg">⚠ Error de conexión con la base de datos.</td></tr>`;
     });
+    } else {
+        renderTabla();
+    }
 
     // --- LÓGICA DE FIREBASE ---
     function guardarRegistro() {
         const btn = document.getElementById('save-btn');
         if (btn.disabled) return;
+        if (!configValida) return mostrarToast('No hay conexión con la base de datos.', true);
 
         const marca = document.getElementById('marca').value.trim();
         const modelo = document.getElementById('modelo').value.trim();
@@ -341,8 +384,52 @@ const firebaseConfig = {
             });
     }
 
+    // --- MODO LECTURA ---
+    function cargarRegistroEnFormulario(key) {
+        const r = allRecords[key];
+        if (!r) return;
+        viewModeKey = key;
+
+        // Poblar campos
+        document.getElementById('marca').value       = r.marca   || '';
+        document.getElementById('modelo').value      = r.modelo  || '';
+        document.getElementById('mes_fab').value     = r.mes     || '';
+        document.getElementById('anio_fab').value    = r.anio    || '';
+        document.getElementById('anio_resuelto').value = r.anio  || '';
+        document.getElementById('tipo_vehiculo').value = r.tipo_veh || '';
+        document.getElementById('tipo_bateria').value  = r.tipo_bat || '';
+        document.getElementById('odometro').value    = r.odo_raw || '';
+        document.getElementById('is_miles').checked  = (r.odo_unit === 'mi');
+
+        // Actualizar hint de año
+        document.getElementById('date-hint').textContent = `→ Año interpretado como ${r.anio}`;
+        document.getElementById('anio_fab').classList.remove('input-error');
+        document.getElementById('anio_fab').classList.add('input-ok');
+
+        // Activar modo lectura visual
+        document.getElementById('form-card').classList.add('view-mode');
+        document.getElementById('edit-btn').style.display = 'inline-block';
+        document.getElementById('soh-save-wrap').style.display = 'none';
+
+        // Forzar recalculo para mostrar SOH en la barra
+        updateComputed();
+
+        // Scroll suave al formulario
+        document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    function activarModoEdicion() {
+        viewModeKey = null;
+        document.getElementById('form-card').classList.remove('view-mode');
+        document.getElementById('edit-btn').style.display = 'none';
+        // Re-habilitar eventos de los campos
+        updateComputed();
+    }
+
     function eliminarRegistro(key) {
         if (!confirm('¿Eliminar este registro? Esta acción es permanente.')) return;
+        // Si estábamos viendo ese registro, limpiar formulario
+        if (viewModeKey === key) limpiarFormulario();
         recordsRef.child(key).remove()
             .then(() => mostrarToast('🗑 Registro eliminado'))
             .catch(err => mostrarToast(`Error al eliminar: ${err.message}`, true));
@@ -356,46 +443,116 @@ const firebaseConfig = {
         const busqAnio = document.getElementById('busq-anio').value.trim();
 
         const recordEntries = Object.entries(allRecords);
-        
-        const filtrados = recordEntries.filter(([key, r]) => 
-            (!busqMarca || (r.marca || '').toUpperCase().includes(busqMarca)) &&
+
+        const filtrados = recordEntries.filter(([key, r]) =>
+            (!busqMarca  || (r.marca  || '').toUpperCase().includes(busqMarca))  &&
             (!busqModelo || (r.modelo || '').toUpperCase().includes(busqModelo)) &&
-            (!busqAnio || String(r.anio).includes(busqAnio))
+            (!busqAnio   || String(r.anio).includes(busqAnio))
         );
 
         if (recordEntries.length === 0) {
             tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Sin registros guardados aún.</td></tr>';
-        } else if (filtrados.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Sin resultados para la búsqueda.</td></tr>';
-        } else {
-            tbody.innerHTML = filtrados.map(([key, r], i) => {
-                const pct = (r.soh * 100).toFixed(2);
-                const cls = r.soh >= 0.8 ? 'badge-green' : r.soh >= 0.6 ? 'badge-amber' : 'badge-red';
-                return `
-                    <tr>
-                        <td>${i + 1}</td>
-                        <td>${r.marca}</td>
-                        <td>${r.modelo}</td>
-                        <td>${r.anio}</td>
-                        <td>${NOMBRES_VEH[r.tipo_veh] || r.tipo_veh}</td>
-                        <td><span class="badge ${cls}">${pct}%</span></td>
-                        <td><button class="del-btn" data-key="${key}" title="Eliminar">🗑</button></td>
-                    </tr>`;
-            }).join('');
+            renderPaginacion(0);
+            return;
         }
+        if (filtrados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="empty-msg">Sin resultados para la búsqueda.</td></tr>';
+            renderPaginacion(0);
+            return;
+        }
+
+        const totalPages = Math.ceil(filtrados.length / PAGE_SIZE);
+        if (currentPage > totalPages) currentPage = totalPages;
+        const start = (currentPage - 1) * PAGE_SIZE;
+        const pagina = filtrados.slice(start, start + PAGE_SIZE);
+
+        tbody.innerHTML = pagina.map(([key, r], i) => {
+            const pct = (r.soh * 100).toFixed(2);
+            const cls = r.soh >= 0.8 ? 'badge-green' : r.soh >= 0.6 ? 'badge-amber' : 'badge-red';
+            return `<tr>
+                <td>${start + i + 1}</td>
+                <td>${r.marca}</td>
+                <td>${r.modelo}</td>
+                <td>${r.anio}</td>
+                <td>${NOMBRES_VEH[r.tipo_veh] || r.tipo_veh}</td>
+                <td><span class="badge ${cls}">${pct}%</span></td>
+                <td><button class="del-btn" data-key="${key}" title="Eliminar">🗑</button></td>
+            </tr>`;
+        }).join('');
+
+        renderPaginacion(totalPages);
+    }
+
+    function renderPaginacion(totalPages) {
+        const container = document.getElementById('pagination');
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        const maxVisible = 10;
+        let html = '';
+
+        // Botón anterior
+        html += `<button class="pg-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="irPagina(${currentPage - 1})">‹</button>`;
+
+        if (totalPages <= maxVisible) {
+            for (let p = 1; p <= totalPages; p++) {
+                html += `<button class="pg-btn${p === currentPage ? ' active' : ''}" onclick="irPagina(${p})">${p}</button>`;
+            }
+        } else {
+            // Mostrar primeras páginas + "..." + última cuando hay muchas
+            const pages = new Set([1, 2, 3, currentPage - 1, currentPage, currentPage + 1, totalPages - 1, totalPages].filter(p => p >= 1 && p <= totalPages));
+            let prev = 0;
+            [...pages].sort((a,b) => a-b).forEach(p => {
+                if (prev && p - prev > 1) html += `<span class="pg-dots">…</span>`;
+                html += `<button class="pg-btn${p === currentPage ? ' active' : ''}" onclick="irPagina(${p})">${p}</button>`;
+                prev = p;
+            });
+        }
+
+        // Botón siguiente (naranja como en la imagen)
+        html += `<button class="pg-btn pg-next" ${currentPage === totalPages ? 'disabled' : ''} onclick="irPagina(${currentPage + 1})">»</button>`;
+
+        container.innerHTML = html;
     }
 
     function limpiarBusqueda() {
         document.getElementById('busq-marca').value = '';
         document.getElementById('busq-modelo').value = '';
         document.getElementById('busq-anio').value = '';
+        currentPage = 1;
         renderTabla();
     }
+
+    // Exponer irPagina al scope global para los botones inline
+    window.irPagina = function(p) { currentPage = p; renderTabla(); };
     
     // --- LÓGICA DE AUTOCOMPLETADO, CÁLCULOS Y UI ---
     // (Estas funciones de apoyo no necesitan cambios)
-    function acActualizarDesdeRegistros() { const recordsArray = Object.values(allRecords); const marcas = new Set(recordsArray.map(r => r.marca).filter(Boolean)); const modelos = new Set(recordsArray.map(r => r.modelo).filter(Boolean)); acData.marca = [...marcas].sort(); acData.modelo = [...modelos].sort(); }
-    function acFiltrar(campo) { const input = document.getElementById(campo), dropdown = document.getElementById(`ac-${campo}`); const query = input.value.trim().toUpperCase(), lista = acData[campo]; acActive[campo] = -1; const sw = [], ct = []; for (const item of lista) { const upperItem = item.toUpperCase(); if (upperItem === query) continue; if (query === '' || upperItem.startsWith(query)) sw.push(item); else if (query !== '' && upperItem.includes(query)) ct.push(item); } const filtrado = [...sw, ...ct].slice(0, 8); if (filtrado.length === 0) { dropdown.innerHTML = ''; dropdown.classList.remove('open'); return; } dropdown.innerHTML = filtrado.map(texto => { let h = texto; if (query.length > 0) { const pos = h.toUpperCase().indexOf(query); if (pos >= 0) h = `${h.substring(0, pos)}<mark>${h.substring(pos, pos + query.length)}</mark>${h.substring(pos + query.length)}`; } return `<div class="ac-item" data-val="${texto}">${h}</div>`; }).join(''); dropdown.classList.add('open'); }
+    function acActualizarDesdeRegistros() { const recordsArray = Object.values(allRecords); const marcas = new Set(recordsArray.map(r => r.marca).filter(Boolean)); acData.marca = [...marcas].sort(); acData.modelo = [...new Set(recordsArray.map(r => r.modelo).filter(Boolean))].sort(); }
+    function acFiltrar(campo) {
+        const input = document.getElementById(campo), dropdown = document.getElementById(`ac-${campo}`);
+        const query = input.value.trim().toUpperCase();
+        acActive[campo] = -1;
+
+        // Para modelo: filtrar por la marca actualmente escrita
+        let lista;
+        if (campo === 'modelo') {
+            const marcaVal = (document.getElementById('marca').value || '').trim().toUpperCase();
+            const recordsArray = Object.values(allRecords);
+            const modelosFiltrados = marcaVal
+                ? [...new Set(recordsArray.filter(r => (r.marca || '').toUpperCase() === marcaVal).map(r => r.modelo).filter(Boolean))].sort()
+                : acData.modelo;
+            lista = modelosFiltrados;
+        } else {
+            lista = acData[campo];
+        }
+
+        const sw = [], ct = [];
+        for (const item of lista) { const upperItem = item.toUpperCase(); if (upperItem === query) continue; if (query === '' || upperItem.startsWith(query)) sw.push(item); else if (query !== '' && upperItem.includes(query)) ct.push(item); }
+        const filtrado = [...sw, ...ct].slice(0, 8);
+        if (filtrado.length === 0) { dropdown.innerHTML = ''; dropdown.classList.remove('open'); return; }
+        dropdown.innerHTML = filtrado.map(texto => { let h = texto; if (query.length > 0) { const pos = h.toUpperCase().indexOf(query); if (pos >= 0) h = `${h.substring(0, pos)}<mark>${h.substring(pos, pos + query.length)}</mark>${h.substring(pos + query.length)}`; } return `<div class="ac-item" data-val="${texto}">${h}</div>`; }).join('');
+        dropdown.classList.add('open');
+    }
     function acSeleccionar(campo, valor) { document.getElementById(campo).value = valor; acCerrarAhora(campo); }
     function acCerrar(campo, delay) { setTimeout(() => acCerrarAhora(campo), delay || 0); }
     function acCerrarAhora(campo) { document.getElementById(`ac-${campo}`).classList.remove('open'); acActive[campo] = -1; }
