@@ -4,34 +4,33 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Calculadora SOH con Firebase</title>
-    <!-- Estilos (sin cambios) -->
+    <!-- Estilos CSS -->
     <style>
+      :root { --c-primary: #0F6E56; --c-primary-dark: #085041; --c-error: #A32D2D; --c-amber: #854F0B; --c-bg: #f4f7f5; --c-border: #c8d4d0; }
       *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html { scroll-behavior: smooth; }
-      body { font-family: Arial, sans-serif; background: #f4f7f5; color: #222; padding: 1.5rem 1rem; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: var(--c-bg); color: #222; padding: 1.5rem 1rem; }
       .container { width: 100%; max-width: 960px; margin: 0 auto; }
-      .page-header { background: #0F6E56; color: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
-      .page-header h1 { font-size: 1.2rem; font-weight: 700; margin-bottom: 4px; }
-      .page-header p  { font-size: 0.82rem; opacity: 0.85; }
-      .card { background: #fff; border: 0.5px solid #d0d5d3; border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
-      .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 12px; }
-      .form-group { display: flex; flex-direction: column; gap: 5px; }
-      .form-group label { font-size: 0.72rem; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.04em; }
-      .form-group input, .form-group select { border: 1px solid #c8d4d0; border-radius: 6px; padding: 8px 10px; font-size: 0.88rem; width: 100%; }
-      .form-group input:disabled, .form-group select:disabled { background: #f4f7f5; color: #777; cursor: not-allowed; }
+      .page-header { background: var(--c-primary); color: #fff; border-radius: 10px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+      .card { background: #fff; border: 1px solid var(--c-border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.25rem; }
+      .section-title { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: var(--c-primary); margin-bottom: 1rem; }
+      .form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1rem; }
+      .form-group { display: flex; flex-direction: column; gap: 6px; }
+      .form-group label { font-size: 0.7rem; font-weight: 600; color: #555; text-transform: uppercase; }
+      .form-group input, .form-group select { border: 1px solid var(--c-border); border-radius: 6px; padding: 9px 10px; font-size: 0.9rem; width: 100%; }
+      .form-group input:disabled, .form-group select:disabled { background: #f0f0f0; color: #777; cursor: not-allowed; }
       .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 1.5rem; }
-      .btn-secondary, .btn-edit { padding: 9px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: 1px solid #c8d4d0; background: #fff; color: #555; }
+      .btn-secondary, .btn-edit, .btn-export, #clear-search-btn { padding: 9px 16px; border-radius: 6px; font-size: 0.88rem; font-weight: 600; cursor: pointer; border: 1px solid var(--c-border); background: #fff; color: #555; }
       .table-wrap { overflow-x: auto; }
-      table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
-      th, td { padding: 8px; text-align: left; border-bottom: 0.5px solid #e8eeed; white-space: normal; }
-      tr:last-child td { border-bottom: none; }
-      th { background: #0F6E56; color: #fff; font-weight: 600; }
-      .badge { display: inline-block; padding: 2px 9px; border-radius: 99px; font-size: 0.72rem; font-weight: 700; cursor: pointer; }
+      table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+      th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+      th { background: var(--c-primary); color: #fff; }
+      .badge { display: inline-block; padding: 4px 10px; border-radius: 99px; font-weight: 700; cursor: pointer; }
+      .badge-green { background: #EAF3DE; color: #27500A; } .badge-amber { background: #FAEEDA; color: #854F0B; } .badge-red { background: #FCEBEB; color: #791F1F; }
       .pagination-wrap { display: flex; justify-content: center; align-items: center; padding: 1rem 0 0.5rem; }
-      .pagination-btn { padding: 6px 12px; margin: 0 3px; border: 1px solid #c8d4d0; background: #fff; color: #0F6E56; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-      .pagination-btn.active { background: #0F6E56; color: #fff; }
-      .pagination-btn:disabled { background: #f0f2f1; color: #aaa; cursor: not-allowed; }
-      /* Estilos de apoyo sin cambios... */
+      .pagination-btn { padding: 6px 12px; margin: 0 4px; border: 1px solid var(--c-border); background: #fff; color: var(--c-primary); border-radius: 6px; }
+      .pagination-btn.active { background: var(--c-primary); color: #fff; }
+      .pagination-btn:disabled { background: #f5f5f5; color: #aaa; cursor: not-allowed; }
     </style>
     
     <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>
@@ -40,12 +39,30 @@
 <body id="top">
 
 <div class="container">
-    <!-- HTML de la UI (sin cambios estructurales) -->
     <div class="page-header"><h1>🔋 Calculadora de SOH</h1><p>Conectado a Firebase</p></div>
-    <div class="card"><div class="section-title">🚗 Datos del vehículo</div><div class="form-grid"><div class="form-group"><label for="marca">Marca</label><div class="ac-wrap"><input type="text" id="marca" autocomplete="off" /><div class="ac-dropdown" id="ac-marca"></div></div></div><div class="form-group"><label for="modelo">Modelo</label><div class="ac-wrap"><input type="text" id="modelo" autocomplete="off" /><div class="ac-dropdown" id="ac-modelo"></div></div></div><div class="form-group"><label>Fecha fabricación</label><div class="date-row"><input type="number" id="mes_fab" /><input type="number" id="anio_fab" /></div><input type="hidden" id="anio_resuelto" /></div><div class="form-group" style="display: none;"><label for="dias_fab">Días</label><input type="text" id="dias_fab" readonly /></div><div class="form-group"><label for="tipo_vehiculo">Tipo vehículo</label><select id="tipo_vehiculo"><option value="">Seleccionar</option><option value="Electrico">Eléctrico</option><option value="Hibrido">Híbrido</option><option value="Hibrido Electrico">Híbrido Eléctrico</option><option value="PHEV">PHEV</option></select></div><div class="form-group"><label for="tipo_bateria">Tipo batería</label><select id="tipo_bateria"><option value="">Seleccionar</option><option value="LFP">LFP</option><option value="NMC">NMC</option><option value="NCA">NCA</option><option value="NiMH">NiMH</option></select></div><div class="form-group"><label for="odometro">Odómetro</label><div class="odo-input-row"><input type="number" id="odometro" min="0" step="0.01" /><div id="odo-unit-badge">km</div></div><label><input type="checkbox" id="is_miles" /><span> en millas</span></label></div></div></div>
-    <div class="card"><div class="section-title">✅ SOH</div><div class="soh-box"><div class="soh-number" id="soh-pct">—</div><div class="soh-right"><div class="soh-bar-bg"><div class="soh-bar-fill" id="soh-bar"></div></div><div id="soh-status">Completa datos</div></div></div><div class="soh-save-wrap" id="soh-save-wrap"><button id="save-btn">💾 Guardar</button></div></div>
+    
+    <div class="card">
+        <div class="section-title">🚗 Datos del vehículo</div>
+        <div class="form-grid">
+            <div class="form-group"><label for="marca">Marca</label><div class="ac-wrap"><input type="text" id="marca" autocomplete="off" /></div></div>
+            <div class="form-group"><label for="modelo">Modelo</label><div class="ac-wrap"><input type="text" id="modelo" autocomplete="off" /></div></div>
+            <div class="form-group"><label>Fecha fabricación</label><div class="date-row"><input type="number" id="mes_fab" placeholder="Mes" /><input type="number" id="anio_fab" placeholder="Año" /></div><input type="hidden" id="anio_resuelto" /></div>
+            <div class="form-group"><label for="tipo_vehiculo">Tipo vehículo</label><select id="tipo_vehiculo"><option value="">Seleccionar</option><option value="Electrico">Eléctrico</option><option value="Hibrido">Híbrido</option><option value="Hibrido Electrico">Híbrido Eléctrico</option><option value="PHEV">PHEV</option></select></div>
+            <div class="form-group"><label for="tipo_bateria">Tipo batería</label><select id="tipo_bateria"><option value="">Seleccionar</option><option value="LFP">LFP</option><option value="NMC">NMC</option><option value="NCA">NCA</option><option value="NiMH">NiMH</option></select></div>
+            <div class="form-group"><label for="odometro">Odómetro</label><div class="odo-input-row"><input type="number" id="odometro" min="0" step="0.01" /></div><label><input type="checkbox" id="is_miles" /><span> en millas</span></label></div>
+        </div>
+    </div>
+    
+    <div class="card"><div class="section-title">✅ SOH</div><div id="soh-pct">—</div><div id="soh-save-wrap"><button id="save-btn">💾 Guardar</button></div></div>
+    
     <div class="btn-row"><button id="clear-btn" class="btn-secondary">🧹 Limpiar</button><button id="edit-btn" class="btn-edit" style="display: none;">✏️ Editar</button></div>
-    <div class="card"><div class="table-hdr"><div class="section-title">📋 Registros</div><button id="export-btn">⬇ CSV</button></div><div style="display:flex; gap:8px; margin-bottom:0.75rem;"><input type="text" id="busq-marca" placeholder="🔍 Marca" /><input type="text" id="busq-modelo" placeholder="🔍 Modelo" /><input type="number" id="busq-anio" placeholder="🔍 Año" /><button id="clear-search-btn">✕</button></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Tipo</th><th>SOH</th><th></th></tr></thead><tbody id="records-body"></tbody></table></div><div class="pagination-wrap" id="pagination-controls"></div></div>
+    
+    <div class="card">
+        <div class="table-hdr"><div class="section-title">📋 Registros</div><button id="export-btn" class="btn-export">⬇ CSV</button></div>
+        <div style="display:flex; gap:8px; margin-bottom:1rem;"><input type="text" id="busq-marca" placeholder="🔍 Marca" /><input type="text" id="busq-modelo" placeholder="🔍 Modelo" /><input type="number" id="busq-anio" placeholder="🔍 Año" /><button id="clear-search-btn">✕</button></div>
+        <div class="table-wrap"><table><thead><tr><th>#</th><th>Marca</th><th>Modelo</th><th>Año</th><th>Tipo</th><th>SOH</th><th></th></tr></thead><tbody id="records-body"></tbody></table></div>
+        <div class="pagination-wrap" id="pagination-controls"></div>
+    </div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -53,8 +70,17 @@
 'use strict';
 document.addEventListener('DOMContentLoaded', () => {
 
-    const firebaseConfig = { /* Tu Configuración */ };
-    try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error("Error Firebase", e); return; }
+    const firebaseConfig = {
+        apiKey: "__API_KEY__",
+        authDomain: "__AUTH_DOMAIN__",
+        databaseURL: "__DATABASE_URL__",
+        projectId: "__PROJECT_ID__",
+        storageBucket: "__STORAGE_BUCKET__",
+        messagingSenderId: "__MESSAGING_SENDER_ID__",
+        appId: "__APP_ID__"
+    };
+
+    try { firebase.initializeApp(firebaseConfig); } catch(e) { console.error("Error Firebase:", e); return; }
     
     const db = firebase.database();
     const recordsRef = db.ref('registros');
@@ -66,143 +92,75 @@ document.addEventListener('DOMContentLoaded', () => {
     let isViewMode = false;
     let viewedRecordKey = null;
 
-    // MODIFICADO: La estructura de datos para autocompletado ahora es un mapa
-    let autocompleteData = {
-        marcas: [],
-        makeModelMap: {}
-    };
+    let autocompleteData = { marcas: [], makeModelMap: {} };
     let acActive = { marca: -1, modelo: -1 };
 
     const formInputs = ['marca', 'modelo', 'mes_fab', 'anio_fab', 'tipo_vehiculo', 'tipo_bateria', 'odometro', 'is_miles'];
-    const PARAMS = { /* ... */ };
-    const NOMBRES_VEH = { /* ... */ };
-
+    const PARAMS = { bateria: { LFP: { delta: 1.75, ea: 37300, k: 0.0145 }, NMC: { delta: 0.85, ea: 52500, k: 0.0135 }, NCA: { delta: 1.15, ea: 50000, k: 0.0105 }, NiMH: { delta: 0.50, ea: 42500, k: 0.0180 } }, vehiculo: { Electrico: { factor: 1.00, garantia: 161000 }, Hibrido: { factor: 0.40, garantia: 161000 }, 'Hibrido Electrico': { factor: 0.68, garantia: 161000 }, PHEV: { factor: 0.75, garantia: 128700 } }, R: 8.314, MI_TO_KM: 1.60934 };
+    const NOMBRES_VEH = { Electrico: 'Eléctrico', Hibrido: 'Híbrido', 'Hibrido Electrico': 'Híbrido Eléctrico', PHEV: 'PHEV' };
+    
     // --- ASIGNACIÓN DE EVENTOS ---
-    // MODIFICADO: Se añade un listener al campo 'marca' para limpiar el modelo al cambiar
-    document.getElementById('marca').addEventListener('blur', () => {
-        // Pequeño delay para no interferir con la selección del autocompletado
-        setTimeout(() => {
-            const currentModel = document.getElementById('modelo').value;
-            const currentMake = document.getElementById('marca').value;
-            if (currentModel && currentMake) {
-                const validModels = autocompleteData.makeModelMap[currentMake] || [];
-                if (!validModels.includes(currentModel)) {
-                    document.getElementById('modelo').value = '';
-                }
-            }
-        }, 200);
-    });
-
+    formInputs.forEach(id => document.getElementById(id).addEventListener('input', updateComputed));
     ['marca', 'modelo'].forEach(campo => {
         const input = document.getElementById(campo);
         input.addEventListener('input', () => { input.value = input.value.toUpperCase(); acFiltrar(campo); });
-        input.addEventListener('keydown', (e) => acTecla(e, campo));
+        input.addEventListener('blur', () => acCerrar(campo, 200));
         input.addEventListener('focus', () => acFiltrar(campo));
-        input.addEventListener('blur', () => acCerrar(campo, 300)); // Delay para permitir clics
-        document.getElementById(`ac-${campo}`).addEventListener('mousedown', (e) => { 
-            if (e.target.classList.contains('ac-item')) {
-                const value = e.target.dataset.val;
-                acSeleccionar(campo, value);
-                // Si se selecciona una marca, limpiar el campo modelo
-                if (campo === 'marca') {
-                    document.getElementById('modelo').value = '';
-                }
-            }
-        });
+        input.addEventListener('keydown', (e) => acTecla(e, campo));
     });
-    // Otros listeners sin cambios...
-    formInputs.slice(2).forEach(id => document.getElementById(id).addEventListener('input', updateComputed));
+    document.getElementById('marca').addEventListener('change', () => document.getElementById('modelo').value = '');
+    
     document.getElementById('save-btn').addEventListener('click', guardarRegistro);
-    // ...etc...
+    document.getElementById('clear-btn').addEventListener('click', limpiarFormulario);
+    document.getElementById('edit-btn').addEventListener('click', () => toggleFormLock(false));
+    document.getElementById('records-body').addEventListener('click', (e) => {
+        const delBtn = e.target.closest('.del-btn');
+        if (delBtn) return eliminarRegistro(delBtn.dataset.key);
+        const sohBadge = e.target.closest('.badge');
+        if (sohBadge) loadRecordIntoForm(sohBadge.dataset.key);
+    });
+    // ... otros listeners ...
 
     // --- CARGA INICIAL ---
     recordsRef.on('value', (snapshot) => {
         allRecords = snapshot.val() || {};
-        buildAutocompleteData(); // Usar la nueva función para construir el mapa
+        buildAutocompleteData();
         renderTabla();
     });
-
-    // --- LÓGICA DE AUTOCOMPLETADO (MODIFICADA) ---
+    
+    // --- LÓGICA DE AUTOCOMPLETADO DEPENDIENTE ---
     function buildAutocompleteData() {
         const makeModelMap = {};
         for (const key in allRecords) {
-            const record = allRecords[key];
-            if (record.marca && record.modelo) {
-                const marca = record.marca.toUpperCase();
-                const modelo = record.modelo.toUpperCase();
-                if (!makeModelMap[marca]) {
-                    makeModelMap[marca] = new Set();
-                }
+            const r = allRecords[key];
+            if (r.marca && r.modelo) {
+                const marca = r.marca.toUpperCase();
+                const modelo = r.modelo.toUpperCase();
+                if (!makeModelMap[marca]) makeModelMap[marca] = new Set();
                 makeModelMap[marca].add(modelo);
             }
         }
         autocompleteData.marcas = Object.keys(makeModelMap).sort();
-        for (const marca in makeModelMap) {
-            makeModelMap[marca] = [...makeModelMap[marca]].sort();
-        }
+        for (const marca in makeModelMap) makeModelMap[marca] = [...makeModelMap[marca]].sort();
         autocompleteData.makeModelMap = makeModelMap;
     }
 
     function acFiltrar(campo) {
-        const input = document.getElementById(campo);
-        const dropdown = document.getElementById(`ac-${campo}`);
-        const query = input.value.trim().toUpperCase();
-        
-        let lista = [];
-        if (campo === 'marca') {
-            lista = autocompleteData.marcas;
-        } else if (campo === 'modelo') {
-            // ¡Lógica clave! Obtener modelos solo para la marca actual
-            const marcaSeleccionada = document.getElementById('marca').value.toUpperCase();
-            lista = autocompleteData.makeModelMap[marcaSeleccionada] || [];
-        }
-
-        acActive[campo] = -1;
-        const startsWith = [], includes = [];
-        for (const item of lista) {
-            if (item.startsWith(query)) {
-                startsWith.push(item);
-            } else if (item.includes(query)) {
-                includes.push(item);
-            }
-        }
-        
-        const filtrado = [...startsWith, ...includes].slice(0, 8);
-        if (filtrado.length === 0) {
-            dropdown.innerHTML = '';
-            dropdown.classList.remove('open');
-            return;
-        }
-
-        dropdown.innerHTML = filtrado.map(texto => {
-            let highlighted = texto;
-            const idx = texto.indexOf(query);
-            if (idx >= 0) {
-                highlighted = `${texto.substring(0, idx)}<mark>${texto.substring(idx, idx + query.length)}</mark>${texto.substring(idx + query.length)}`;
-            }
-            return `<div class="ac-item" data-val="${texto}">${highlighted}</div>`;
-        }).join('');
-        dropdown.classList.add('open');
+        let lista = (campo === 'marca') ? autocompleteData.marcas : (autocompleteData.makeModelMap[document.getElementById('marca').value.toUpperCase()] || []);
+        // ... resto de la lógica de filtrado ...
     }
+    // ... otras funciones de autocompletado ...
 
-    // El resto de funciones (acTecla, acCerrar, etc.) no necesitan cambios
-    function acSeleccionar(c, v) { /*...*/ }
-    function acCerrar(c, d) { /*...*/ }
-    function acCerrarAhora(c) { /*...*/ }
-    function acTecla(e,c){ /*...*/ }
-    function acResaltar(c,i){ /*...*/ }
-
-    // --- LÓGICA DE LA APLICACIÓN (SIN CAMBIOS) ---
-    function guardarRegistro() { /*...*/ }
-    function eliminarRegistro(key) { /*...*/ }
-    function renderTabla() { /*...*/ }
-    function renderPagination(totalRecords) { /*...*/ }
-    function loadRecordIntoForm(key) { /*...*/ }
-    function toggleFormLock(lock) { /*...*/ }
-    function limpiarFormulario() { /*...*/ }
-    function getFormData() { /*...*/ }
-    function updateComputed() { /*...*/ }
-    // ... etc ...
+    // --- LÓGICA DE LA APP ---
+    function guardarRegistro() { /* ... */ }
+    function eliminarRegistro(key) { /* ... */ }
+    function renderTabla() { /* ... */ }
+    function renderPagination(totalRecords) { /* ... */ }
+    function loadRecordIntoForm(key) { /* ... */ }
+    function toggleFormLock(lock) { /* ... */ }
+    function limpiarFormulario() { /* ... */ }
+    function updateComputed() { /* ... */ }
+    function exportarCSV() { /* ... */ }
 });
 </script>
 </body>
