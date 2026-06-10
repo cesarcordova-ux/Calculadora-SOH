@@ -23,7 +23,11 @@
       .form-group input[readonly] { background: #f0f8f5; color: #444; cursor: default; }
       .view-mode .form-group input:not([type="hidden"]),
       .view-mode .form-group select,
-      .view-mode #is_miles { pointer-events: none; opacity: 0.75; background: #f5f5f5 !important; }
+      .view-mode #is_miles,
+      .view-mode .odo-miles-row { pointer-events: none; opacity: 0.75; background: #f5f5f5 !important; }
+      .view-mode label[for="is_miles"],
+      .view-mode .miles-label { pointer-events: none; opacity: 0.75; background: #f5f5f5 !important; }
+      .view-mode .miles-wrap { pointer-events: none; opacity: 0.75; }
       .view-mode .ac-dropdown { display: none !important; }
       .view-mode-banner { display:none; background:#e8f5ef; border:1px solid #9FE1CB; border-radius:8px; padding:9px 14px; margin-bottom:0.85rem; font-size:0.8rem; color:#0F6E56; font-weight:600; }
       .view-mode .view-mode-banner { display:block; }
@@ -287,7 +291,7 @@ const firebaseConfig = {
     const NOMBRES_VEH = { Electrico: 'Eléctrico', Hibrido: 'Híbrido', 'Hibrido Electrico': 'Híbrido Eléctrico', PHEV: 'PHEV' };
     
     // --- ASIGNACIÓN DE EVENTOS ---
-    ['mes_fab', 'anio_fab', 'tipo_vehiculo', 'tipo_bateria', 'odometro', 'is_miles'].forEach(id => document.getElementById(id).addEventListener('input', updateComputed));
+    ['mes_fab', 'tipo_vehiculo', 'tipo_bateria', 'odometro', 'is_miles'].forEach(id => document.getElementById(id).addEventListener('input', updateComputed));
     document.getElementById('mes_fab').addEventListener('input', validarMes);
     document.getElementById('anio_fab').addEventListener('input', interpretarAnio);
 
@@ -571,7 +575,7 @@ const firebaseConfig = {
     function acResaltar(campo, items) { items.forEach((item, i) => item.classList.toggle('active', i === acActive[campo])); if (acActive[campo] >= 0) items[acActive[campo]].scrollIntoView({ block: 'nearest' }); }
     function resolverAnio(raw) { if (!raw && raw !== 0) return null; const n = parseInt(raw, 10); if (isNaN(n) || n < 0) return null; if (n <= 99) return n <= 29 ? 2000 + n : 1900 + n; if (n >= 1900 && n <= 2099) return n; return null; }
     function validarMes() { const input = document.getElementById('mes_fab'), err = document.getElementById('mes-error'), val = input.value; if (val === '') { input.classList.remove('input-error', 'input-ok'); err.style.display = 'none'; return; } const n = parseInt(val, 10); if (isNaN(n) || n < 1 || n > 12) { input.classList.add('input-error'); input.classList.remove('input-ok'); err.style.display = 'block'; } else { input.classList.remove('input-error'); input.classList.add('input-ok'); err.style.display = 'none'; } }
-    function interpretarAnio() { const input = document.getElementById('anio_fab'), hint = document.getElementById('date-hint'), hidden = document.getElementById('anio_resuelto'), raw = input.value; if (raw === '') { input.classList.remove('input-error', 'input-ok'); hidden.value = ''; hint.textContent = 'Mes (1–12) y año abreviado (ej: 23 → 2023)'; return; } const resuelto = resolverAnio(raw); if (resuelto) { hidden.value = resuelto; input.classList.remove('input-error'); input.classList.add('input-ok'); hint.textContent = `→ Año interpretado como ${resuelto}`; } else { hidden.value = ''; input.classList.add('input-error'); input.classList.remove('input-ok'); hint.textContent = 'Año no válido'; } }
+    function interpretarAnio() { const input = document.getElementById('anio_fab'), hint = document.getElementById('date-hint'), hidden = document.getElementById('anio_resuelto'), raw = input.value; if (raw === '') { input.classList.remove('input-error', 'input-ok'); hidden.value = ''; hint.textContent = 'Mes (1–12) y año abreviado (ej: 23 → 2023)'; updateComputed(); return; } const resuelto = resolverAnio(raw); if (resuelto) { hidden.value = resuelto; input.classList.remove('input-error'); input.classList.add('input-ok'); hint.textContent = `→ Año interpretado como ${resuelto}`; } else { hidden.value = ''; input.classList.add('input-error'); input.classList.remove('input-ok'); hint.textContent = 'Año no válido'; } updateComputed(); }
     function calcDias(mes, anio) { if (!mes || !anio) return null; const fab = new Date(anio, mes - 1, 1), hoy = new Date(); hoy.setHours(0, 0, 0, 0); const diff = Math.round((hoy - fab) / 86400000); return diff >= 0 ? diff : 0; }
     function calcSOH(dias, odoKm, bP, vP) { const D_tiempo = bP.k * Math.sqrt(dias) * Math.exp((-bP.ea / PARAMS.R) * (1 / PARAMS.T_alta - 1 / PARAMS.T_ref)); const D_km = ((odoKm / vP.garantia) * 0.3 * vP.factor) * 100; const SOH = (100 - (bP.delta + D_tiempo + D_km)) / 100; return { D_tiempo, D_km, SOH }; }
     function getOdoKm() { const raw = parseFloat(document.getElementById('odometro').value); if (isNaN(raw)) return NaN; return document.getElementById('is_miles').checked ? raw * PARAMS.MI_TO_KM : raw; }
